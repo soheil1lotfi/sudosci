@@ -120,6 +120,8 @@ async function refreshCapture() {
     ask({ type: 'sudosci:media' }),
   ]);
   renderCapture(status, media);
+  // The fact-check section keys off documentId, which was just resolved.
+  if (typeof refreshCheck === 'function' && !checking) refreshCheck();
 
   // The document grows while an audio capture runs.
   clearTimeout(refreshCapture.timer);
@@ -196,8 +198,159 @@ async function initCapture() {
   refreshCapture();
 }
 
+/* ---------- fact check ---------- */
+
+const checkStateEl = document.getElementById('checkState');
+const checkStatsEl = document.getElementById('checkStats');
+const runCheckEl = document.getElementById('runCheck');
+const pingEl = document.getElementById('pingBackend');
+const checkHintEl = document.getElementById('checkHint');
+const autoCheckEl = document.getElementById('autoFactcheck');
+const showAllEl = document.getElementById('showAllVerdicts');
+const urlEl = document.getElementById('backendUrl');
+const keyEl2 = document.getElementById('backendKey');
+const saveBackendEl = document.getElementById('saveBackend');
+
+let checking = false;
+let checkStartedAt = 0;
+
+function sayCheck(text) {
+  checkHintEl.textContent = text;
+}
+
+function renderCheck(status) {
+  checking = !!status?.running;
+  const a = status?.analysis || null;
+
+  checkStateEl.textContent = checking ? 'checking' : a ? 'done' : 'idle';
+  checkStateEl.classList.toggle('live', checking);
+  runCheckEl.textContent = a && !checking ? 'Re-check claims' : 'Check claims';
+  runCheckEl.disabled = checking || !documentId;
+
+  if (checking) {
+    // No streaming from the backend, so the only honest progress is elapsed time.
+    const secs = Math.round((Date.now() - checkStartedAt) / 1000);
+    checkStatsEl.textContent = `Working… ${secs}s (can take 30–120s)`;
+    return;
+  }
+
+  if (!a) {
+    checkStatsEl.textContent = documentId ? 'Not checked yet' : 'Needs a transcript first';
+    return;
+  }
+
+  const counts = Object.entries(a.byVerdict)
+    .sort((x, y) => y[1] - x[1])
+    .map(([verdict, n]) => `${n} ${verdict.replace('_', ' ')}`)
+    .join(' · ');
+  checkStatsEl.textContent =
+    `${a.total} claim${a.total === 1 ? '' : 's'}` +
+    (a.total - a.placed > 0 ? ` (${a.total - a.placed} without a timestamp)` : '') +
+    (counts ? ` — ${counts}` : '');
+
+  if (!a.researchEnabled) sayCheck('⚠ Search was unavailable — verdicts are unverified.');
+  else if (a.warnings?.length) sayCheck(a.warnings[0]);
+}
+
+async function refreshCheck() {
+  const status = await toBackground({
+    type: 'factcheck:status',
+    documentId,
+  }).catch(() => null);
+  renderCheck(status);
+
+  clearTimeout(refreshCheck.timer);
+  if (checking) refreshCheck.timer = setTimeout(refreshCheck, 1000);
+}
+
+async function initFactcheck() {
+  const { settings } = (await toBackground({ type: 'settings:get' }).catch(() => ({}))) || {};
+  if (settings) {
+    autoCheckEl.checked = !!settings.autoFactcheck;
+    showAllEl.checked = !!settings.showAllVerdicts;
+    urlEl.value = settings.factcheckUrl || '';
+    keyEl2.placeholder = settings.hasFactcheckKey
+      ? `Backend key ${settings.factcheckKeyHint}`
+      : 'Backend API key (optional)';
+  }
+
+  autoCheckEl.addEventListener('change', () =>
+    toBackground({ type: 'settings:set', patch: { autoFactcheck: autoCheckEl.checked } })
+  );
+  showAllEl.addEventListener('change', async () => {
+    await toBackground({ type: 'settings:set', patch: { showAllVerdicts: showAllEl.checked } });
+    // Markers are rebuilt from the stored analysis, so nudge the page.
+    await ask({ type: 'sudosci:refresh' });
+  });
+
+  saveBackendEl.addEventListener('click', async () => {
+    const patch = { factcheckUrl: urlEl.value.trim() };
+    if (keyEl2.value.trim()) patch.factcheckKey = keyEl2.value.trim();
+
+    // A custom host needs its permission granted; this click is the gesture.
+    const granted = await ensureHostPermission(patch.factcheckUrl);
+    if (!granted) return sayCheck('Permission for that host was declined');
+
+    const res = await toBackground({ type: 'settings:set', patch });
+    keyEl2.value = '';
+    if (res?.settings?.hasFactcheckKey) {
+      keyEl2.placeholder = `Backend key ${res.settings.factcheckKeyHint}`;
+    }
+    sayCheck('Backend saved');
+  });
+
+  pingEl.addEventListener('click', async () => {
+    sayCheck('Pinging…');
+    const res = await toBackground({ type: 'factcheck:ping' }).catch(() => null);
+    const backend = res?.backend;
+    sayCheck(
+      backend?.ok
+        ? `Backend ready at ${res.url}`
+        : `Backend unreachable (${backend?.error || `HTTP ${backend?.status}`})`
+    );
+  });
+
+  runCheckEl.addEventListener('click', async () => {
+    runCheckEl.disabled = true;
+    checking = true;
+    checkStartedAt = Date.now();
+    renderCheck({ running: true });
+    sayCheck('');
+
+    const tab = await activeTab();
+    const res = await toBackground({
+      type: 'factcheck:run',
+      tabId: tab?.id,
+      force: true,
+    }).catch((error) => ({ ok: false, error: String(error?.message || error) }));
+
+    checking = false;
+    if (!res?.ok) sayCheck(res?.error || 'Fact check failed');
+    else if (res.cached) sayCheck(`Already checked — ${res.claims} claims`);
+    else sayCheck(`Done in ${Math.round((res.elapsedMs || 0) / 1000)}s — ${res.claims} claims`);
+    refreshCheck();
+  });
+
+  refreshCheck();
+}
+
+/** Custom backend hosts are optional permissions, granted on demand. */
+async function ensureHostPermission(url) {
+  if (!url) return true;
+  let origin;
+  try {
+    origin = `${new URL(url).origin}/*`;
+  } catch {
+    sayCheck('That does not look like a URL');
+    return false;
+  }
+  if (await chrome.permissions.contains({ origins: [origin] })) return true;
+  return chrome.permissions.request({ origins: [origin] });
+}
+
 async function init() {
   initCapture();
+  initFactcheck();
 
   const settings = { ...DEFAULTS, ...(await chrome.storage.sync.get(DEFAULTS)) };
 

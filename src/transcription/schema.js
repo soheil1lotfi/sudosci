@@ -62,6 +62,11 @@ export function createSegment({ start, end, text = null, confidence = null, spea
   return { start, end, text, confidence, speaker };
 }
 
+/* Gaps this small are pauses between caption cues, not untranscribed audio.
+   Merging across them keeps coverage a statement about what was captured
+   instead of a list of every breath the speaker took. */
+const COVERAGE_GAP_TOLERANCE = 3;
+
 /** Merge overlapping coverage intervals so the list stays small and sorted. */
 export function addCoverage(coverage, start, end) {
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return coverage;
@@ -70,7 +75,7 @@ export function addCoverage(coverage, start, end) {
   const out = [merged[0]];
   for (const [s, e] of merged.slice(1)) {
     const last = out[out.length - 1];
-    if (s <= last[1] + 0.5) last[1] = Math.max(last[1], e);
+    if (s <= last[1] + COVERAGE_GAP_TOLERANCE) last[1] = Math.max(last[1], e);
     else out.push([s, e]);
   }
   return out;

@@ -54,11 +54,45 @@
       <p class="hint" id="captureHint"></p>
     </section>
 
+    <section class="capture">
+      <div class="capture-head">
+        <span class="section-title">Fact check</span>
+        <span class="pill" id="checkState">idle</span>
+      </div>
+      <div class="capture-stats" id="checkStats">Not checked yet</div>
+      <div class="capture-actions">
+        <button id="runCheck" type="button" class="primary">Check claims</button>
+        <button id="pingBackend" type="button">Test</button>
+      </div>
+
+      <label class="row compact">
+        <span class="row-label">Check automatically</span>
+        <input type="checkbox" id="autoFactcheck" />
+      </label>
+      <label class="row compact">
+        <span class="row-label">Show supported &amp; unverifiable</span>
+        <input type="checkbox" id="showAllVerdicts" />
+      </label>
+
+      <div class="key-row">
+        <input type="text" id="backendUrl" placeholder="http://localhost:8000" autocomplete="off" />
+      </div>
+      <div class="key-row">
+        <input type="password" id="backendKey" placeholder="Backend API key (optional)" autocomplete="off" />
+        <button id="saveBackend" type="button">Save</button>
+      </div>
+
+      <p class="hint" id="checkHint"></p>
+    </section>
+
     <section class="legend">
       <div class="legend-title">Marker legend</div>
-      <div class="legend-item"><i style="background:#ff3b30"></i>False claim</div>
+      <div class="legend-item"><i style="background:#ff3b30"></i>False</div>
       <div class="legend-item"><i style="background:#ff9f0a"></i>Misleading</div>
-      <div class="legend-item"><i style="background:#5ac8fa"></i>Unverified</div>
+      <div class="legend-item"><i style="background:#5ac8fa"></i>Needs context</div>
+      <div class="legend-item"><i style="background:#30d158"></i>Supported</div>
+      <div class="legend-item"><i style="background:#8e8e93"></i>Unverifiable</div>
+      <div class="legend-item"><i style="background:#bf5af2"></i>Opinion</div>
     </section>
 
     <footer class="foot">

@@ -17,6 +17,15 @@ const DEFAULTS = {
   // '' lets SerpApi pick the track YouTube marks as selected (human captions
   // when they exist). 'asr' forces the auto-generated one.
   transcriptType: '',
+
+  /* Fact-check backend. */
+  factcheckUrl: 'http://localhost:8000',
+  factcheckKey: '', // the server's auth gate is a no-op when its API_KEY is unset
+  // Off by default: a run is 30–120 s of LLM and search budget, so it is the
+  // user's call, not something every video open should trigger.
+  autoFactcheck: false,
+  // Markers normally show only the verdicts worth interrupting for.
+  showAllVerdicts: false,
 };
 
 const SEEDED_FLAG = 'serpApiKeySeeded';

@@ -13,6 +13,7 @@
 
   let timer = null;
   let announcedKey = null;
+  let lastReading = null;
 
   function describeMedia() {
     const media = adapter.getMedia();
@@ -37,10 +38,24 @@
     const media = describeMedia();
     if (!media) return;
 
-    // Wait for real metadata: YouTube swaps the title in after navigation, and
-    // announcing early would store a document labelled with the old video.
     const key = `${media.platform}:${media.mediaId}`;
-    if (key === announcedKey || !media.duration) return;
+    if (key === announcedKey) return;
+
+    // An ad plays through the same <video>, so its duration is not the video's.
+    if (media.isAd || !media.ready || !media.duration || !media.title) {
+      lastReading = null;
+      return;
+    }
+
+    /* Require the same reading twice in a row. YouTube is a single-page app:
+       on navigation the URL becomes the new video while <video> still holds the
+       previous one's duration and the title is still the placeholder, so the
+       first reading after a nav is routinely a mix of both videos. */
+    const reading = `${key}|${Math.round(media.duration)}|${media.title}`;
+    if (reading !== lastReading) {
+      lastReading = reading;
+      return;
+    }
 
     announcedKey = key;
     chrome.runtime

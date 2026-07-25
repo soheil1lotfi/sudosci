@@ -11,12 +11,14 @@
   let overlay = null;
   let currentKey = null; // `${mediaId}:${duration}` — identifies what is loaded
   let claimCount = 0;
+  let unplacedCount = 0;
 
   function teardown() {
     overlay?.destroy();
     overlay = null;
     currentKey = null;
     claimCount = 0;
+    unplacedCount = 0;
   }
 
   async function sync() {
@@ -46,12 +48,17 @@
     }
 
     currentKey = key;
-    const claims = await NS.claims.fetchClaims(media);
+    await loadClaims(media, key);
+  }
 
-    // Bail if something else loaded while claims were in flight.
+  async function loadClaims(media, key) {
+    const { claims, unplaced, analysis } = await NS.claims.fetchClaims(media);
+
+    // Bail if something else loaded while the lookup was in flight.
     if (currentKey !== key || !overlay) return;
     claimCount = claims.length;
-    overlay.setClaims(claims, media.duration);
+    unplacedCount = unplaced.length;
+    overlay.setClaims(claims, media.duration, analysis);
   }
 
   const syncSoon = debounce(sync, 400);
@@ -86,8 +93,18 @@
         mediaId: media?.mediaId ?? null,
         duration: media?.duration ?? null,
         markers: claimCount,
+        unplaced: unplacedCount,
         mounted: !!overlay?.isAttached(),
       });
+      return true;
+    }
+
+    /* A fact-check run finishes long after the video opened, so the background
+       pushes results rather than the overlay polling for them. */
+    if (msg?.type === 'sudosci:claims') {
+      const media = adapter.getMedia();
+      if (media && currentKey) loadClaims(media, currentKey);
+      sendResponse({ ok: true });
       return true;
     }
     if (msg?.type === 'sudosci:refresh') {
