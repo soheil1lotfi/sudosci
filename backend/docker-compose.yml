@@ -1,0 +1,106 @@
+# Deployment unit for NVIDIA Brev: vLLM serving Gemma 4 12B, plus the API.
+#
+# Brev instances ship Docker and the NVIDIA Container Toolkit, so the GPU
+# reservation below works as-is. Point a Brev Launchable (Docker Compose mode)
+# at this file's Git URL, choose an L40S 44GB or larger, and set JupyterLab to
+# "No" - the API serves its own port.
+#
+# Only /home/ubuntu/workspace survives a stop/start on Brev, so the Hugging Face
+# cache lives there. Without that, every restart re-downloads ~23GB of weights.
+
+services:
+  vllm:
+    image: vllm/vllm-openai:nightly
+    # Gemma 4 support (including the gemma4 tool-call and reasoning parsers)
+    # landed after the last stable tag, hence :nightly. Pin to a digest once a
+    # stable release includes it.
+    ipc: host
+    restart: unless-stopped
+    environment:
+      # Gemma is a gated repo: accept the licence on Hugging Face, then pass a
+      # token with access. Without it the download fails with a 401.
+      HF_TOKEN: ${HF_TOKEN:?set HF_TOKEN to a Hugging Face token with Gemma access}
+      HF_HOME: /root/.cache/huggingface
+      VLLM_API_KEY: ${LLM_API_KEY:-local-dev-key}
+      MODEL: ${LLM_MODEL:-google/gemma-4-12B-it}
+      # Gemma 4's heterogeneous attention heads push vLLM onto Triton kernels
+      # rather than FlashAttention, which leaves TTFT good but end-to-end latency
+      # poor. Multi-Token Prediction recovers 1.5-3x of that, so this earns its
+      # place. It needs the matching MTP draft checkpoint to exist for your model
+      # though - if vLLM fails at startup complaining it cannot fetch the
+      # speculative model, set SPECULATIVE_ARGS="" and you lose only the speedup.
+      SPECULATIVE_ARGS: >-
+        ${SPECULATIVE_ARGS---speculative-config={"model":"${LLM_MODEL:-google/gemma-4-12B-it}-assistant","num_speculative_tokens":4}}
+    volumes:
+      - ${HF_CACHE_DIR:-/home/ubuntu/workspace/hf-cache}:/root/.cache/huggingface
+    # Shell form so SPECULATIVE_ARGS can expand to nothing. `$$` defers
+    # expansion to the container's shell rather than to compose.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        exec python3 -m vllm.entrypoints.openai.api_server
+        --model "$${MODEL}"
+        --served-model-name "$${MODEL}"
+        --max-model-len=32768
+        --gpu-memory-utilization=0.90
+        --enable-auto-tool-choice
+        --tool-call-parser=gemma4
+        --reasoning-parser=gemma4
+        --enable-prefix-caching
+        --max-num-seqs=16
+        $${SPECULATIVE_ARGS}
+    # Flags above, in order: 32k context covers a full transcript plus retrieved
+    # evidence (Gemma 4 12B supports 256k, but KV cache scales with this, so do
+    # not raise it without checking headroom); native Gemma 4 tool calling drives
+    # the verification loop; prefix caching pays off because every claim shares a
+    # long system prompt.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 20s
+      timeout: 5s
+      # Cold start pulls and loads ~23GB, so allow a generous window before the
+      # container is declared unhealthy.
+      start_period: 900s
+      retries: 5
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      LLM_BASE_URL: http://vllm:8000/v1
+      LLM_API_KEY: ${LLM_API_KEY:-local-dev-key}
+      LLM_MODEL: ${LLM_MODEL:-google/gemma-4-12B-it}
+
+      # Without research credentials the service still runs, but nothing can be
+      # retrieved and every verdict comes back unverifiable.
+      MCP_URL: ${MCP_URL:-https://mcp.alien.club/mcp?config=cfg_UtzjgjDLGNrW}
+      MCP_API_KEY: ${MCP_API_KEY:-}
+      # Fallback auth, from scripts/mcp_login.py, if no static key exists.
+      MCP_CLIENT_ID: ${MCP_CLIENT_ID:-}
+      MCP_CLIENT_SECRET: ${MCP_CLIENT_SECRET:-}
+      MCP_REFRESH_TOKEN: ${MCP_REFRESH_TOKEN:-}
+      MCP_ENABLE_ARCHIVE: ${MCP_ENABLE_ARCHIVE:-false}
+
+      MAX_SEARCHES_PER_CLAIM: ${MAX_SEARCHES_PER_CLAIM:-3}
+      MAX_SEARCHES_PER_REQUEST: ${MAX_SEARCHES_PER_REQUEST:-24}
+      CLAIM_CONCURRENCY: ${CLAIM_CONCURRENCY:-4}
+      MAX_CLAIMS: ${MAX_CLAIMS:-12}
+
+      # Leave blank only for local development; the Brev tunnel is reachable by
+      # anyone who can authenticate to it.
+      API_KEY: ${API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      vllm:
+        condition: service_healthy

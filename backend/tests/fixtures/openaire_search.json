@@ -1,0 +1,352 @@
+{
+ "success": true,
+ "data": {
+  "header": {
+   "numFound": 4,
+   "maxScore": 17.39287,
+   "queryTime": 608,
+   "page": 1,
+   "pageSize": 2
+  },
+  "results": [
+   {
+    "authors": [
+     {
+      "id": "orcid_______::32aa131546a1029848c6b3077b7708ee",
+      "fullName": "Luke E, Taylor",
+      "name": "Luke E",
+      "surname": "Taylor",
+      "rank": 1,
+      "pid": {
+       "id": {
+        "scheme": "orcid",
+        "value": "0000-0001-5499-8361"
+       },
+       "provenance": null
+      }
+     },
+     {
+      "id": null,
+      "fullName": "Amy L, Swerdfeger",
+      "name": "Amy L",
+      "surname": "Swerdfeger",
+      "rank": 2,
+      "pid": null
+     },
+     {
+      "id": "orcid_______::92d8e9b3ead6a2152b7236df166f0378",
+      "fullName": "Guy D, Eslick",
+      "name": "Guy D",
+      "surname": "Eslick",
+      "rank": 3,
+      "pid": {
+       "id": {
+        "scheme": "orcid",
+        "value": "0000-0002-0098-1705"
+       },
+       "provenance": null
+      }
+     }
+    ],
+    "openAccessColor": null,
+    "publiclyFunded": false,
+    "eoscIfGuidelines": null,
+    "type": "publication",
+    "language": {
+     "code": "eng",
+     "label": "English"
+    },
+    "countries": null,
+    "mainTitle": "Vaccines are not associated with autism: An evidence-based meta-analysis of case-control and cohort studies",
+    "subTitle": null,
+    "descriptions": [
+     "There has been enormous debate regarding the possibility of a link between childhood vaccinations and the subsequent development of autism. This has in recent times become a major public health issue with vaccine preventable diseases increasing in the community due to the fear of a 'link' between vaccinations and autism. We performed a meta-analysis to summarise available evidence from case-control and cohort studies on this topic (MEDLINE, PubMed, EMBASE, Google Scholar up to April, 2014). Eligible studies assessed the relationship between vaccine administration and the subsequent development of autism or autism spectrum disorders (ASD). Two reviewers extracted data on study characteristics, methods, and outcomes. Disagreement was resolved by consensus with another author. Five cohort studies involving 1,256,407 children, and five case-control studies involving 9,920 children were included in this analysis. The cohort data revealed no relationship between vaccination and autism (OR: 0.99; 95% CI: 0.92 to 1.06) or ASD (OR: 0.91; 95% CI: 0.68 to 1.20), nor was there a relationship between autism and MMR (OR: 0.84; 95% CI: 0.70 to 1.01), or thimerosal (OR: 1.00; 95% CI: 0.77 to 1.31), or mercury (Hg) (OR: 1.00; 95% CI: 0.93 to 1.07). Similarly the case-control data found no evidence for increased risk of developing autism or ASD following MMR, Hg, or thimerosal exposure when grouped by condition (OR: 0.90, 95% CI: 0.83 to 0.98; p=0.02) or grouped by exposure type (OR: 0.85, 95% CI: 0.76 to 0.95; p=0.01). Findings of this meta-analysis suggest that vaccinations are not associated with the development of autism or autism spectrum disorder. Furthermore, the components of the vaccines (thimerosal or mercury) or multiple vaccines (MMR) are not associated with the development of autism or autism spectrum disorder."
+    ],
+    "publicationDate": "2014-06-01",
+    "publisher": "Elsevier BV",
+    "embargoEndDate": null,
+    "sources": [
+     "Crossref"
+    ],
+    "formats": null,
+    "contributors": null,
+    "coverages": null,
+    "bestAccessRight": {
+     "code": "c_14cb",
+     "label": "CLOSED",
+     "scheme": "http://vocabularies.coar-repositories.org/documentation/access_rights/"
+    },
+    "container": {
+     "name": "Vaccine",
+     "issnPrinted": "0264-410X",
+     "issnOnline": null,
+     "issnLinking": null,
+     "ep": "3629",
+     "iss": null,
+     "sp": "3623",
+     "vol": "32",
+     "edition": null,
+     "conferencePlace": null,
+     "conferenceDate": null
+    },
+    "documentationUrls": null,
+    "codeRepositoryUrl": null,
+    "programmingLanguage": null,
+    "contactPeople": null,
+    "contactGroups": null,
+    "tools": null,
+    "size": null,
+    "version": null,
+    "geoLocations": null,
+    "id": "doi_dedup___::72566046d1774ce36b7c067583da1a3b",
+    "originalIds": [
+     "S0264410X14006367",
+     "10.1016/j.vaccine.2014.04.085",
+     "50|doiboost____|72566046d1774ce36b7c067583da1a3b",
+     "24814559",
+     "2025926911"
+    ],
+    "pids": [
+     {
+      "scheme": "doi",
+      "value": "10.1016/j.vaccine.2014.04.085"
+     },
+     {
+      "scheme": "pmid",
+      "value": "24814559"
+     }
+    ],
+    "dateOfCollection": null,
+    "lastUpdateTimeStamp": null,
+    "indicators": {
+     "citationImpact": {
+      "citationCount": 428,
+      "influence": 3.66492e-08,
+      "popularity": 1.5603423e-07,
+      "impulse": 107,
+      "citationClass": "C2",
+      "influenceClass": "C3",
+      "impulseClass": "C2",
+      "popularityClass": "C2"
+     }
+    },
+    "communities": null,
+    "collectedFrom": [
+     {
+      "key": "openaire____::081b82f96300b6a6e3d282bad31cb6e2",
+      "value": "Crossref"
+     },
+     {
+      "key": "openaire____::5f532a3fc4f1ea403f37070f59a7a53a",
+      "value": "Microsoft Academic Graph"
+     },
+     {
+      "key": "opendoar____::8b6dd7db9af49e67306feb59a8bdc52c",
+      "value": "Europe PubMed Central"
+     }
+    ],
+    "instances": [
+     {
+      "pids": [
+       {
+        "scheme": "doi",
+        "value": "10.1016/j.vaccine.2014.04.085"
+       }
+      ],
+      "license": "Elsevier TDM",
+      "accessRight": {
+       "code": "c_14cb",
+       "label": "CLOSED",
+       "scheme": "http://vocabularies.coar-repositories.org/documentation/access_rights/",
+       "openAccessRoute": null
+      },
+      "type": "Article",
+      "urls": [
+       "https://doi.org/10.1016/j.vaccine.2014.04.085"
+      ],
+      "publicationDate": "2014-06-01",
+      "refereed": "peerReviewed",
+      "hostedBy": {
+       "key": "issn___print::1e270672d337514c98c411b6fe59045d",
+       "value": "Vaccine"
+      },
+      "collectedFrom": {
+       "key": "openaire____::081b82f96300b6a6e3d282bad31cb6e2",
+       "value": "Crossref"
+      }
+     }
+    ],
+    "links": [],
+    "otherTitles": null,
+    "inDiamondJournal": false,
+    "green": false,
+    "isGreen": false,
+    "isInDiamondJournal": false
+   },
+   {
+    "authors": [
+     {
+      "id": null,
+      "fullName": "Nermin Eyl\u00fcl \u00c7atl\u0131",
+      "name": "Nermin Eyl\u00fcl",
+      "surname": "\u00c7atl\u0131",
+      "rank": 1,
+      "pid": {
+       "id": {
+        "scheme": "orcid_pending",
+        "value": "0009-0008-1914-5265"
+       },
+       "provenance": null
+      }
+     },
+     {
+      "id": "orcid_______::42a2a68d1818e932db47745f7f518bdc",
+      "fullName": "Gonca \u00d6zyurt",
+      "name": "Gonca",
+      "surname": "\u00d6zyurt",
+      "rank": 2,
+      "pid": {
+       "id": {
+        "scheme": "orcid",
+        "value": "0000-0002-0508-0594"
+       },
+       "provenance": null
+      }
+     }
+    ],
+    "openAccessColor": "gold",
+    "publiclyFunded": false,
+    "eoscIfGuidelines": null,
+    "type": "publication",
+    "language": {
+     "code": "und",
+     "label": "Undetermined"
+    },
+    "countries": null,
+    "mainTitle": "The relationship between autism and autism spectrum disorders and vaccination: review of the current literature",
+    "subTitle": null,
+    "descriptions": [
+     "<jats:p>This study evaluates the alleged relationship between childhood vaccination\u2014specifically the MMR (measles, mumps, rubella) and DPT (diphtheria, pertussis, tetanus) vaccines\u2014and the development of autism spectrum disorders (ASD). It addresses public concerns by reviewing existing literature and highlighting the essential role of vaccines in public health. A comprehensive analysis of scientific studies, including systematic reviews, meta-analyses, and population-based investigations, was conducted, with particular attention to research on temporal associations, thimerosal content, and proposed immunological mechanisms. The findings consistently show no causal link between childhood vaccinations and ASD. Neither the MMR vaccine nor thimerosal-containing vaccines were associated with an increased risk of ASD, as confirmed by large-scale cohort studies and international meta-analyses. Additionally, no evidence supports claims that temporal patterns or atypical forms of ASD are related to vaccination. Overall, the current scientific consensus strongly refutes the notion that vaccines cause autism. The findings support the continuation of current immunization programs, stressing the importance of combating misinformation, reinforcing public trust, and safeguarding community health through sustained vaccination efforts. No changes to existing vaccine protocols are warranted.</jats:p>"
+    ],
+    "publicationDate": "2025-06-30",
+    "publisher": "Aydin Pediatric Society",
+    "embargoEndDate": null,
+    "sources": [
+     "Crossref",
+     "Trends in Pediatrics, Vol 6, Iss 2 (2025)"
+    ],
+    "formats": null,
+    "contributors": null,
+    "coverages": null,
+    "bestAccessRight": {
+     "code": "c_abf2",
+     "label": "OPEN",
+     "scheme": "http://vocabularies.coar-repositories.org/documentation/access_rights/"
+    },
+    "container": {
+     "name": "Trends in Pediatrics",
+     "issnPrinted": null,
+     "issnOnline": "2792-0429",
+     "issnLinking": null,
+     "ep": "81",
+     "iss": null,
+     "sp": "76",
+     "vol": "6",
+     "edition": null,
+     "conferencePlace": null,
+     "conferenceDate": null
+    },
+    "documentationUrls": null,
+    "codeRepositoryUrl": null,
+    "programmingLanguage": null,
+    "contactPeople": null,
+    "contactGroups": null,
+    "tools": null,
+    "size": null,
+    "version": null,
+    "geoLocations": null,
+    "id": "doi_dedup___::0b7d62a69af10c02c359e11f51dbd077",
+    "originalIds": [
+     "10.59213/tp.2025.222",
+     "50|doiboost____|0b7d62a69af10c02c359e11f51dbd077",
+     "50|doajarticles::11d873bac2890dc2238c9ec45261c5da",
+     "oai:doaj.org/article:9015236b766a4b5383051cb781c7e03e"
+    ],
+    "pids": [
+     {
+      "scheme": "doi",
+      "value": "10.59213/tp.2025.222"
+     }
+    ],
+    "dateOfCollection": null,
+    "lastUpdateTimeStamp": null,
+    "indicators": {
+     "citationImpact": {
+      "citationCount": 1,
+      "influence": 2.287686e-09,
+      "popularity": 3.0234144e-09,
+      "impulse": 1,
+      "citationClass": "C5",
+      "influenceClass": "C5",
+      "impulseClass": "C5",
+      "popularityClass": "C5"
+     }
+    },
+    "communities": [
+     {
+      "code": "neuroscience",
+      "label": "Neuroscience",
+      "provenance": null
+     }
+    ],
+    "collectedFrom": [
+     {
+      "key": "driver______::bee53aa31dc2cbb538c10c2b65fa5824",
+      "value": "DOAJ"
+     },
+     {
+      "key": "openaire____::081b82f96300b6a6e3d282bad31cb6e2",
+      "value": "Crossref"
+     }
+    ],
+    "instances": [
+     {
+      "pids": [
+       {
+        "scheme": "doi",
+        "value": "10.59213/tp.2025.222"
+       }
+      ],
+      "license": "CC BY",
+      "accessRight": {
+       "code": "c_abf2",
+       "label": "OPEN",
+       "scheme": "http://vocabularies.coar-repositories.org/documentation/access_rights/",
+       "openAccessRoute": "hybrid"
+      },
+      "type": "Article",
+      "urls": [
+       "https://doi.org/10.59213/tp.2025.222"
+      ],
+      "publicationDate": "2025-06-30",
+      "refereed": "peerReviewed",
+      "hostedBy": {
+       "key": "doajarticles::87deed6d92a2d1e49da4ab3c69394f76",
+       "value": "Trends in Pediatrics"
+      },
+      "collectedFrom": {
+       "key": "openaire____::081b82f96300b6a6e3d282bad31cb6e2",
+       "value": "Crossref"
+      }
+     }
+    ],
+    "links": [],
+    "otherTitles": null,
+    "inDiamondJournal": false,
+    "green": false,
+    "isGreen": false,
+    "isInDiamondJournal": false
+   }
+  ]
+ }
+}

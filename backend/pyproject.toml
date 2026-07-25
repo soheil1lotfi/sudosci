@@ -1,0 +1,22 @@
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 96
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "BLE", "RUF"]
+ignore = [
+    # Smart quotes, dashes and non-breaking spaces appear on purpose: folding
+    # them is exactly what citation quote-matching does, so the literals that
+    # spell them out are the feature, not a typo.
+    "RUF001",
+    "RUF002",
+    # `ResearchUnavailable` reads better than `ResearchUnavailableError` at its
+    # call sites, and it is unambiguously an exception from context.
+    "N818",
+]

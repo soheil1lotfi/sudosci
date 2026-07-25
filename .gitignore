@@ -1,5 +1,37 @@
-# Local API keys — seeded into chrome.storage on first run, never committed.
+# --- Secrets -----------------------------------------------------------------
+# Extension API keys — seeded into chrome.storage on first run, never committed.
 secrets.local.json
 
-.DS_Store
+# Backend config. .env.example is the tracked template; real values stay local.
+.env
+.env.*
+!.env.example
+
+# OAuth credentials from scripts/mcp_login.py --save. The refresh token grants
+# research-MCP access on our behalf, so it never lands in the repo.
+mcp_tokens.json
+secrets/
+
+# --- Extension (root) --------------------------------------------------------
 node_modules/
+
+# --- Backend (Python) --------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Hugging Face weights, when HF_CACHE_DIR is pointed inside the repo instead of
+# the Brev workspace default. ~23GB of Gemma.
+hf-cache/
+
+# --- OS / editor -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
