@@ -147,10 +147,16 @@
   min-width: 0;
 }
 
-.sudosci-panel-severity {
+.sudosci-panel-verdict {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.sudosci-panel-confidence {
+  font-size: 11px;
+  color: rgba(242, 242, 245, 0.5);
+  font-variant-numeric: tabular-nums;
 }
 
 .sudosci-panel-time {
@@ -179,20 +185,168 @@
 }
 
 .sudosci-panel-body {
-  min-height: 180px;
   padding: 14px;
-  display: flex;
+  max-height: min(60vh, 460px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
-.sudosci-panel-placeholder {
-  flex: 1;
+.sudosci-section {
+  margin-bottom: 14px;
+}
+
+.sudosci-section-title {
+  margin: 0 0 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(242, 242, 245, 0.4);
+}
+
+.sudosci-text,
+.sudosci-claim {
+  margin: 0;
+  color: rgba(242, 242, 245, 0.9);
+}
+
+.sudosci-claim {
+  font-weight: 500;
+}
+
+.sudosci-muted {
+  margin: 0;
+  color: rgba(242, 242, 245, 0.45);
+}
+
+.sudosci-quote {
+  margin: 0;
+  padding: 8px 10px;
+  border-left: 2px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0 6px 6px 0;
+  color: rgba(242, 242, 245, 0.75);
+  font-style: italic;
+}
+
+.sudosci-banner {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 159, 10, 0.14);
+  border: 1px solid rgba(255, 159, 10, 0.35);
+  color: #ffd08a;
+  font-size: 12px;
+}
+
+/* ---------- citations ---------- */
+
+.sudosci-citations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sudosci-citation {
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sudosci-citation-meta {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border: 1px dashed rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
-  color: rgba(242, 242, 245, 0.4);
-  font-size: 13px;
-  text-align: center;
-  padding: 16px;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+
+.sudosci-chip {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+.sudosci-tier {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(242, 242, 245, 0.45);
+}
+
+.sudosci-fuzzy {
+  font-size: 10px;
+  color: #ff9f0a;
+  cursor: help;
+  border-bottom: 1px dotted currentColor;
+}
+
+.sudosci-citation-title {
+  display: block;
+  margin: 0 0 4px;
+  color: rgba(242, 242, 245, 0.9);
+  font-weight: 500;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+/* Only an actual link looks like one — a source with no url must not imply it. */
+a.sudosci-citation-title {
+  color: #7ad3fb;
+}
+
+a.sudosci-citation-title:hover {
+  text-decoration: underline;
+}
+
+.sudosci-citation-quote {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(242, 242, 245, 0.62);
+}
+
+/* ---------- adjustments + footer ---------- */
+
+.sudosci-adjustments {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: rgba(242, 242, 245, 0.65);
+}
+
+.sudosci-adjustments summary {
+  cursor: pointer;
+  color: rgba(242, 242, 245, 0.45);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sudosci-adjustments ul {
+  margin: 7px 0 0;
+  padding-left: 18px;
+}
+
+.sudosci-adjustments li {
+  margin-bottom: 3px;
+}
+
+.sudosci-panel-footer {
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  color: rgba(242, 242, 245, 0.35);
+}
+
+.sudosci-claim-type {
+  text-transform: capitalize;
 }

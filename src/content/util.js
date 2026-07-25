@@ -5,10 +5,38 @@
 
   const PREFIX = 'sudosci';
 
-  const SEVERITY = {
-    false: { label: 'False', color: '#ff3b30' },
-    misleading: { label: 'Misleading', color: '#ff9f0a' },
-    unverified: { label: 'Unverified', color: '#5ac8fa' },
+  /* Mirrors the backend's Verdict enum. `marker: true` are the verdicts worth
+     interrupting a viewer for; the rest only appear when the user asks. */
+  const VERDICTS = {
+    false: { label: 'False', color: '#ff3b30', marker: true },
+    misleading: { label: 'Misleading', color: '#ff9f0a', marker: true },
+    needs_context: { label: 'Needs context', color: '#5ac8fa', marker: true },
+    unverifiable: { label: 'Unverifiable', color: '#8e8e93', marker: false },
+    supported: { label: 'Supported', color: '#30d158', marker: false },
+    opinion: { label: 'Opinion', color: '#bf5af2', marker: false },
+  };
+
+  const UNKNOWN_VERDICT = { label: 'Unknown', color: '#8e8e93', marker: false };
+
+  const verdictOf = (verdict) => VERDICTS[verdict] || UNKNOWN_VERDICT;
+
+  /* Citation vocabulary, also straight from the backend enums. */
+  const STANCES = {
+    supports: { label: 'Supports', color: '#30d158' },
+    refutes: { label: 'Refutes', color: '#ff3b30' },
+    partial: { label: 'Partial', color: '#ff9f0a' },
+    context: { label: 'Context', color: '#5ac8fa' },
+  };
+
+  const SOURCE_TIERS = {
+    systematic_review: 'Systematic review',
+    peer_reviewed: 'Peer reviewed',
+    preprint: 'Preprint',
+    fact_check: 'Fact check',
+    institutional: 'Institutional',
+    reputable_press: 'Reputable press',
+    science_journalism: 'Science journalism',
+    other: 'Other',
   };
 
   const DEFAULT_SETTINGS = {
@@ -104,7 +132,10 @@
 
   Object.assign(NS, {
     PREFIX,
-    SEVERITY,
+    VERDICTS,
+    STANCES,
+    SOURCE_TIERS,
+    verdictOf,
     DEFAULT_SETTINGS,
     el,
     clamp,

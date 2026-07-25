@@ -4,7 +4,12 @@
   "version": "0.1.0",
   "description": "Marks scientific claims on the YouTube timeline. Click a marker to pause and inspect the claim.",
   "permissions": ["storage", "tabCapture", "offscreen", "downloads"],
-  "host_permissions": ["https://serpapi.com/*"],
+  "host_permissions": [
+    "https://serpapi.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": {
     "service_worker": "src/background/service-worker.js",
     "type": "module"

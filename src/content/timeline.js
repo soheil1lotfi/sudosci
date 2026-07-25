@@ -1,7 +1,7 @@
 /* Renders claim markers as an overlay on top of a player's native timeline. */
 (() => {
   const NS = window.__SUDOSCI;
-  const { el, clamp, formatTime, SEVERITY } = NS;
+  const { el, clamp, formatTime, verdictOf } = NS;
 
   const OVERLAY_CLASS = 'sudosci-overlay';
 
@@ -64,9 +64,10 @@
       }
     }
 
-    setClaims(claims, duration) {
+    setClaims(claims, duration, analysis = null) {
       this.claims = claims || [];
       this.duration = duration;
+      this.analysis = analysis;
       this.render();
     }
 
@@ -84,16 +85,16 @@
     }
 
     buildMarker(claim) {
-      const severity = SEVERITY[claim.severity] || SEVERITY.unverified;
+      const verdict = verdictOf(claim.verdict);
       const percent = clamp((claim.time / this.duration) * 100, 0, 100);
 
       const marker = el('button', 'sudosci-marker', {
         type: 'button',
-        'data-severity': claim.severity,
-        'aria-label': `${severity.label} claim at ${formatTime(claim.time)}: ${claim.label}`,
+        'data-verdict': claim.verdict,
+        'aria-label': `${verdict.label} claim at ${formatTime(claim.time)}: ${claim.label}`,
       });
       marker.style.left = `${percent}%`;
-      marker.style.setProperty('--sudosci-color', severity.color);
+      marker.style.setProperty('--sudosci-color', verdict.color);
       marker.appendChild(el('span', 'sudosci-marker-pin'));
       this.claimByMarker.set(marker, claim);
 
@@ -108,18 +109,18 @@
       });
 
       marker.addEventListener('pointerenter', () => {
-        this.showTooltip(claim, percent, severity);
+        this.showTooltip(claim, percent, verdict);
       });
       marker.addEventListener('pointerleave', () => this.hideTooltip());
 
       return marker;
     }
 
-    showTooltip(claim, percent, severity) {
+    showTooltip(claim, percent, verdict) {
       this.tooltip.replaceChildren();
       const head = el('span', 'sudosci-tooltip-head');
-      head.textContent = `${severity.label} · ${formatTime(claim.time)}`;
-      head.style.color = severity.color;
+      head.textContent = `${verdict.label} · ${formatTime(claim.time)}`;
+      head.style.color = verdict.color;
       const body = el('span', 'sudosci-tooltip-body');
       body.textContent = claim.label;
       this.tooltip.append(head, body);
@@ -138,7 +139,7 @@
         // Land slightly before the claim so its lead-in is audible on resume.
         this.adapter.seek(Math.max(0, claim.time - 1.5));
       }
-      NS.panel.open(claim);
+      NS.panel.open(claim, { analysis: this.analysis });
     }
 
     isAttached() {

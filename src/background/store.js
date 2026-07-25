@@ -1,8 +1,28 @@
 /* Transcript documents live in chrome.storage.local, one key per media item. */
 
 const KEY_PREFIX = 'transcript:';
+const ANALYSIS_PREFIX = 'analysis:';
 
 const keyFor = (documentId) => `${KEY_PREFIX}${documentId}`;
+const analysisKeyFor = (documentId) => `${ANALYSIS_PREFIX}${documentId}`;
+
+/* Fact-check results are stored beside the transcript rather than inside it:
+   one transcript can be re-analysed, and the two have different lifetimes. */
+
+export async function getAnalysis(documentId) {
+  const key = analysisKeyFor(documentId);
+  const stored = await chrome.storage.local.get(key);
+  return stored[key] ?? null;
+}
+
+export async function putAnalysis(analysis) {
+  await chrome.storage.local.set({ [analysisKeyFor(analysis.documentId)]: analysis });
+  return analysis;
+}
+
+export async function deleteAnalysis(documentId) {
+  await chrome.storage.local.remove(analysisKeyFor(documentId));
+}
 
 export async function getDocument(documentId) {
   const key = keyFor(documentId);

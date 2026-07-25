@@ -19,13 +19,22 @@ import {
 } from '../transcription/schema.js';
 import { chunkSegments } from '../transcription/chunk-segments.js';
 import { MediaClock } from './clock.js';
+import { checkReady, runFactCheck } from './factcheck.js';
 import { getSettings, setSettings } from './settings.js';
 import {
   MODEL_ID as SERPAPI_MODEL,
   SOURCE_ID as SERPAPI_SOURCE,
   fetchTranscript,
 } from './sources/serpapi-youtube.js';
-import { deleteDocument, getDocument, listDocuments, putDocument, summarize } from './store.js';
+import {
+  deleteDocument,
+  getAnalysis,
+  getDocument,
+  listDocuments,
+  putAnalysis,
+  putDocument,
+  summarize,
+} from './store.js';
 
 const OFFSCREEN_PATH = 'src/offscreen/offscreen.html';
 
@@ -45,6 +54,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 const HANDLERS = {
+  'factcheck:run': ({ tabId, force, offline }) => factcheckForTab(tabId, { force, offline }),
+  'factcheck:status': ({ documentId }) => factcheckStatus(documentId),
+  'factcheck:ping': async () => {
+    const { factcheckUrl } = await getSettings();
+    return { backend: await checkReady({ baseUrl: factcheckUrl }), url: factcheckUrl };
+  },
+  'claims:get': ({ platform, mediaId }) => claimsFor(`${platform}:${mediaId}`),
   'transcript:fetch': ({ tabId, force }) => fetchForTab(tabId, { force }),
   'media:detected': (message, sender) => onMediaDetected(message, sender),
   'settings:get': async () => ({ settings: redact(await getSettings()) }),
@@ -258,8 +274,9 @@ async function fetchTranscriptFor(media, { force = false, tabId = null } = {}) {
 
   const existing = await getDocument(documentId);
   if (!force && existing?.capture?.source === SERPAPI_SOURCE && existing.chunks?.length) {
-    report(tabId, { documentId, cached: true, document: existing });
-    return { documentId, cached: true, chunks: existing.chunks.length };
+    const doc = await refreshMetadata(existing, media);
+    report(tabId, { documentId, cached: true, document: doc });
+    return { documentId, cached: true, chunks: doc.chunks.length };
   }
 
   if (inFlight.has(documentId)) return inFlight.get(documentId);
@@ -311,6 +328,12 @@ async function fetchTranscriptFor(media, { force = false, tabId = null } = {}) {
 
     await putDocument(doc);
     report(tabId, { documentId, cached: false, document: doc });
+
+    // Opt-in: a run costs real time and search budget.
+    if (settings.autoFactcheck && tabId) {
+      factcheckForTab(tabId).catch(() => {}); // errors already surface via report()
+    }
+
     return {
       documentId,
       cached: false,
@@ -321,6 +344,36 @@ async function fetchTranscriptFor(media, { force = false, tabId = null } = {}) {
 
   inFlight.set(documentId, task);
   return task;
+}
+
+/* A document stored before the page settled can carry the placeholder title or
+   an ad's duration. The transcript is keyed off the video id and stays correct,
+   so repair the metadata in place rather than re-fetching. */
+async function refreshMetadata(doc, media) {
+  let changed = false;
+
+  if (media.title && media.title !== doc.media.title) {
+    doc.media.title = media.title;
+    changed = true;
+  }
+  if (media.author && media.author !== doc.media.author) {
+    doc.media.author = media.author;
+    changed = true;
+  }
+  // Trust a duration that at least covers the transcript; a shorter one is the
+  // stale reading we are trying to correct.
+  const transcriptEnd = doc.chunks.length ? doc.chunks[doc.chunks.length - 1].end : 0;
+  if (
+    Number.isFinite(media.duration) &&
+    media.duration >= transcriptEnd - 1 &&
+    media.duration !== doc.media.duration
+  ) {
+    doc.media.duration = media.duration;
+    changed = true;
+  }
+
+  if (changed) await putDocument(doc);
+  return doc;
 }
 
 /** Fired by the content script whenever a new video becomes current. */
@@ -375,14 +428,153 @@ function report(tabId, payload) {
   if (tabId) chrome.tabs.sendMessage(tabId, { type: 'sudosci:transcript', ...payload }).catch(() => {});
 }
 
+/** Keys never leave the worker; the popup only needs to know one is set. */
 function redact(settings) {
   const key = settings.serpApiKey || '';
+  const backendKey = settings.factcheckKey || '';
   return {
     autoTranscribe: settings.autoTranscribe,
     transcriptLanguage: settings.transcriptLanguage,
     hasApiKey: !!key,
     apiKeyHint: key ? `••••${key.slice(-4)}` : '',
+
+    factcheckUrl: settings.factcheckUrl,
+    autoFactcheck: settings.autoFactcheck,
+    showAllVerdicts: settings.showAllVerdicts,
+    hasFactcheckKey: !!backendKey,
+    factcheckKeyHint: backendKey ? `••••${backendKey.slice(-4)}` : '',
   };
+}
+
+/* ---------- fact-check ---------- */
+
+/** Runs keyed by documentId — the request is long, so never start two. */
+const checking = new Map();
+
+async function factcheckForTab(tabId, { force = false, offline = false } = {}) {
+  const media = await askTab(tabId, { type: 'sudosci:media' });
+  if (!media) throw new Error('No supported player found in this tab');
+
+  const documentId = `${media.platform}:${media.mediaId}`;
+  const doc = await getDocument(documentId);
+  if (!doc?.chunks?.length) {
+    throw new Error('No transcript for this video yet — fetch one first');
+  }
+
+  const existing = await getAnalysis(documentId);
+  if (!force && existing?.response) {
+    notifyClaims(tabId, documentId, existing);
+    return { documentId, cached: true, claims: existing.response.claims?.length ?? 0 };
+  }
+
+  if (checking.has(documentId)) return checking.get(documentId);
+
+  const task = (async () => {
+    const settings = await getSettings();
+    const startedAt = Date.now();
+    report(tabId, { note: 'Fact-checking — this can take a minute or two…' });
+
+    try {
+      const response = await runFactCheck({
+        baseUrl: settings.factcheckUrl,
+        apiKey: settings.factcheckKey,
+        document: doc,
+        offline,
+      });
+
+      const analysis = {
+        documentId,
+        checkedAt: new Date().toISOString(),
+        elapsedMs: Date.now() - startedAt,
+        backendUrl: settings.factcheckUrl,
+        response,
+      };
+      await putAnalysis(analysis);
+      notifyClaims(tabId, documentId, analysis);
+
+      return {
+        documentId,
+        cached: false,
+        claims: response.claims?.length ?? 0,
+        skipped: response.skipped?.length ?? 0,
+        researchEnabled: response.research_enabled !== false,
+        elapsedMs: analysis.elapsedMs,
+      };
+    } catch (error) {
+      report(tabId, { error: String(error?.message || error) });
+      throw error;
+    }
+  })().finally(() => checking.delete(documentId));
+
+  checking.set(documentId, task);
+  return task;
+}
+
+async function factcheckStatus(documentId) {
+  const analysis = documentId ? await getAnalysis(documentId) : null;
+  return {
+    running: documentId ? checking.has(documentId) : checking.size > 0,
+    analysis: analysis ? summariseAnalysis(analysis) : null,
+  };
+}
+
+function summariseAnalysis(analysis) {
+  const response = analysis.response || {};
+  const claims = response.claims || [];
+  return {
+    documentId: analysis.documentId,
+    checkedAt: analysis.checkedAt,
+    elapsedMs: analysis.elapsedMs,
+    total: claims.length,
+    // start_ms is dropped when the quote could not be located in the transcript.
+    placed: claims.filter((c) => Number.isFinite(c.start_ms)).length,
+    byVerdict: claims.reduce((acc, c) => {
+      acc[c.verdict] = (acc[c.verdict] || 0) + 1;
+      return acc;
+    }, {}),
+    skipped: (response.skipped || []).length,
+    researchEnabled: response.research_enabled !== false,
+    warnings: response.warnings || [],
+    model: response.model ?? null,
+    searchesUsed: response.searches_used ?? null,
+    summary: response.summary ?? null,
+    language: response.language ?? null,
+  };
+}
+
+/** What the content script needs to draw markers and fill the panel. */
+async function claimsFor(documentId) {
+  const analysis = await getAnalysis(documentId);
+  if (!analysis?.response) return { analysis: null };
+
+  const { showAllVerdicts } = await getSettings();
+  return {
+    analysis: {
+      documentId,
+      checkedAt: analysis.checkedAt,
+      summary: analysis.response.summary ?? null,
+      language: analysis.response.language ?? null,
+      warnings: analysis.response.warnings || [],
+      researchEnabled: analysis.response.research_enabled !== false,
+      claims: analysis.response.claims || [],
+      skipped: analysis.response.skipped || [],
+    },
+    showAllVerdicts,
+  };
+}
+
+function notifyClaims(tabId, documentId, analysis) {
+  const summary = summariseAnalysis(analysis);
+  console.log(
+    `[SudoSci] fact-check ${documentId}:`,
+    `${summary.total} claims (${summary.placed} placed),`,
+    JSON.stringify(summary.byVerdict)
+  );
+  if (tabId) {
+    chrome.tabs
+      .sendMessage(tabId, { type: 'sudosci:claims', documentId, analysis: analysis.response })
+      .catch(() => {});
+  }
 }
 
 /* ---------- export ---------- */

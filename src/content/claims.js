@@ -1,66 +1,67 @@
 /* Claim source.
  *
- * This is the seam for the real pipeline (transcribe -> detect scientific
- * claim -> verify -> return flagged spans). Today it returns deterministic
- * mock claims so the timeline UI can be built and demoed. Swapping in the
- * backend means replacing the body of `fetchClaims` with a fetch() call —
- * the shape of the returned objects is the contract:
+ * Claims come from the fact-check backend via the service worker (the content
+ * script cannot call it directly — a cross-origin fetch from a page context is
+ * subject to CORS, the background's is not). Results are stored per video, so
+ * this is a lookup, not a request: the analysis is triggered from the popup or
+ * by the auto-run setting.
  *
- *   {
- *     id: string,          // stable per claim
- *     time: number,        // seconds into the media, where the claim starts
- *     endTime?: number,    // optional, seconds
- *     severity: 'false' | 'misleading' | 'unverified',
- *     label: string,       // short text for the hover tooltip
- *   }
+ * A marker needs `start_ms`, which the backend omits when it could not locate
+ * the quote in the transcript. Those claims are still returned here, under
+ * `unplaced`, so the UI can account for them instead of silently losing them.
  */
 (() => {
   const NS = window.__SUDOSCI;
-  const { hashString, mulberry32 } = NS;
-
-  const MOCK_LABELS = [
-    { severity: 'false', label: 'Claim contradicts published evidence' },
-    { severity: 'misleading', label: 'Statistic quoted without context' },
-    { severity: 'unverified', label: 'No peer-reviewed source found' },
-    { severity: 'false', label: 'Study cited does not say this' },
-    { severity: 'misleading', label: 'Correlation presented as causation' },
-    { severity: 'unverified', label: 'Preprint only — not replicated' },
-  ];
-
-  /** Deterministic placeholder claims spread across the media duration. */
-  function mockClaims({ platform, mediaId, duration }) {
-    if (!Number.isFinite(duration) || duration < 30) return [];
-
-    const rand = mulberry32(hashString(`${platform}:${mediaId}`));
-    const count = 3 + Math.floor(rand() * 4); // 3–6 markers
-    const claims = [];
-
-    for (let i = 0; i < count; i++) {
-      // Spread markers over 5%–95% of the timeline, jittered within their slot.
-      const slot = (i + rand()) / count;
-      const time = duration * (0.05 + slot * 0.9);
-      const pick = MOCK_LABELS[Math.floor(rand() * MOCK_LABELS.length)];
-      claims.push({
-        id: `${mediaId}-${i}`,
-        time,
-        endTime: Math.min(duration, time + 12),
-        severity: pick.severity,
-        label: pick.label,
-      });
-    }
-
-    return claims.sort((a, b) => a.time - b.time);
-  }
+  const { verdictOf } = NS;
 
   /**
-   * @param {{platform: string, mediaId: string, duration: number}} media
-   * @returns {Promise<Array>} claims
+   * @param {{platform: string, mediaId: string}} media
+   * @returns {Promise<{claims: Array, unplaced: Array, analysis: object|null}>}
    */
-  async function fetchClaims(media) {
-    // TODO: replace with the analysis backend, e.g.
-    //   const res = await fetch(`${API}/claims?platform=...&id=...`);
-    //   return (await res.json()).claims;
-    return mockClaims(media);
+  async function fetchClaims({ platform, mediaId }) {
+    let result;
+    try {
+      result = await chrome.runtime.sendMessage({
+        target: 'background',
+        type: 'claims:get',
+        platform,
+        mediaId,
+      });
+    } catch {
+      return empty(); // worker asleep or extension reloading
+    }
+
+    const analysis = result?.analysis;
+    if (!analysis?.claims?.length) return empty(analysis ?? null);
+
+    const showAll = !!result.showAllVerdicts;
+    const placed = [];
+    const unplaced = [];
+
+    analysis.claims.forEach((claim, index) => {
+      const verdict = verdictOf(claim.verdict);
+      if (!showAll && !verdict.marker) return;
+
+      const entry = {
+        id: `${mediaId}-${index}`,
+        verdict: claim.verdict,
+        // The tooltip shows the decontextualised restatement, not the raw quote.
+        label: claim.claim || claim.quote || verdict.label,
+        claim,
+      };
+
+      if (Number.isFinite(claim.start_ms)) placed.push({ ...entry, time: claim.start_ms / 1000 });
+      else unplaced.push(entry);
+    });
+
+    // The backend returns claims in transcript order only incidentally.
+    placed.sort((a, b) => a.time - b.time);
+
+    return { claims: placed, unplaced, analysis };
+  }
+
+  function empty(analysis = null) {
+    return { claims: [], unplaced: [], analysis };
   }
 
   NS.claims = { fetchClaims };

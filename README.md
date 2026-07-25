@@ -8,9 +8,10 @@ It also collects the transcript. Opening a video fetches its captions (SerpApi) 
 stores them as chunked JSON for the backend. Videos without captions can be
 transcribed from tab audio instead. See [docs/TRANSCRIPTION.md](docs/TRANSCRIPTION.md).
 
-**Markers are still mock data.** The pipeline they represent: transcript → detect
-scientific claims → verify against literature → return the false/misleading ones
-as timestamped markers. The transcript half exists; the analysis half does not.
+Markers come from the fact-check backend: transcript → claim detection →
+verification against literature → timestamped verdicts on the scrub bar. Wiring
+and error handling are in [docs/BACKEND.md](docs/BACKEND.md); a mock server that
+implements the contract ships in [tools/](tools/) so the frontend runs without it.
 
 ## Install (unpacked)
 
@@ -19,9 +20,16 @@ as timestamped markers. The transcript half exists; the analysis half does not.
 3. **Load unpacked** → select this folder
 4. Open a YouTube video and press play
 
-Markers appear as coloured pins on the scrub bar. Red = false, amber = misleading,
-blue = unverified. The toolbar popup toggles markers, pause-on-click, and
-jump-on-click, and shows how many markers are on the current media.
+Opening a video fetches its transcript automatically. Then either point the popup
+at your backend and hit **Check claims**, or run the mock:
+
+```bash
+node tools/mock-backend.mjs   # serves the documented contract on :8000
+```
+
+Markers appear as coloured pins on the scrub bar — red = false, amber =
+misleading, blue = needs context. Clicking one pauses the video, jumps to the
+claim, and opens the verdict with its sources.
 
 ## API key
 
@@ -41,45 +49,43 @@ development; move it behind your backend before distributing.
 ```
 manifest.json
 src/content/
-  util.js               shared helpers, severity palette, settings
-  claims.js             claim source — THE BACKEND SEAM (see below)
+  util.js               shared helpers, verdict palette, settings
+  claims.js             reads stored analyses, filters by verdict
   adapters/youtube.js   YouTube + Shorts
   timeline.js           renders the marker overlay + tooltips
-  panel.js              the click-through panel (empty shell for now)
+  panel.js              the claim panel — verdict, quote, sources
   index.js              controller: picks adapter, mounts, re-syncs
   clock.js              announces media, reports the playhead during capture
   styles.css
-src/background/         orchestrator, settings, media clock, document store
+src/background/         orchestrator, settings, media clock, stores
+  factcheck.js          POST /v1/factcheck client
+  sources/serpapi-youtube.js
 src/offscreen/          tab-audio capture + the transcription model seam
 src/transcription/      document schema, chunking, config
-src/popup/              toolbar popup (markers, transcription, API key)
+src/popup/              toolbar popup (markers, transcript, fact check, keys)
+tools/mock-backend.mjs  stand-in for the backend, implements the contract
 docs/TRANSCRIPTION.md   how the transcript pipeline fits together
+docs/BACKEND.md         how the fact-check integration fits together
 ```
 
 ## Wiring in the real backend
 
-Replace the body of `fetchClaims` in [src/content/claims.js](src/content/claims.js).
-It receives `{ platform, mediaId, duration }` and must resolve to an array of:
+Point the popup at your `POST /v1/factcheck` server and it works — no code change.
+The client is [src/background/factcheck.js](src/background/factcheck.js); request
+shaping, error mapping, verdict colours and the long-request UI are described in
+[docs/BACKEND.md](docs/BACKEND.md).
 
-```js
-{
-  id: 'string',            // stable per claim
-  time: 412.5,             // seconds into the media
-  endTime: 424.5,          // optional
-  severity: 'false' | 'misleading' | 'unverified',
-  label: 'short tooltip text'
-}
-```
+It runs in the service worker, so **your backend needs no CORS middleware** —
+extension background fetches with `host_permissions` are exempt. Only
+`localhost` is pre-granted; any other host is requested from the popup when you
+save the URL.
 
-Nothing else needs to change — the overlay, tooltips, and panel all read that shape.
-A cross-origin API call will also need the host added to `host_permissions` in the
-manifest.
+## The claim panel
 
-## Filling in the panel
-
-[src/content/panel.js](src/content/panel.js) builds the shell and exposes
-`open(claim)` / `close()`. The analysis view (transcript excerpt, verdict, sources)
-goes inside `.sudosci-panel-body`, replacing the placeholder.
+[src/content/panel.js](src/content/panel.js) renders one `ClaimResult`: verdict and
+confidence, the decontextualised claim, the verbatim quote, the explanation, and
+the citations in backend order (strongest tier first — never re-sorted), with
+fuzzy matches tagged and `adjustments` in a collapsed expander.
 
 ## The player adapter
 
@@ -130,3 +136,8 @@ what the backend consumes; its shape is documented in
   and never re-fetched; auto-fetch can be switched off in the popup.
 - Tab audio capture cannot auto-start — Chrome requires a user gesture — and runs
   in realtime, so an hour of audio takes an hour.
+- A fact check is one blocking request, plausibly 30–120 s, with no progress
+  events. The popup shows elapsed time; per-claim streaming needs SSE on the
+  backend.
+- Claims whose quote could not be located come back without `start_ms` and cannot
+  be placed on the timeline. They are counted in the popup rather than dropped.
