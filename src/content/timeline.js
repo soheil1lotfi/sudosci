@@ -95,6 +95,11 @@
       });
       marker.style.left = `${percent}%`;
       marker.style.setProperty('--sudosci-color', verdict.color);
+      // Overlapping markers: the more serious verdict wins the click.
+      marker.style.zIndex = String(verdict.rank ?? 3);
+      // Everything checked gets a pin, but a supported claim should not shout
+      // as loudly as a false one.
+      if (!verdict.marker) marker.classList.add('sudosci-quiet');
       marker.appendChild(el('span', 'sudosci-marker-pin'));
       this.claimByMarker.set(marker, claim);
 

@@ -49,14 +49,33 @@ export async function getResearchTools({ baseUrl, apiKey }) {
   return get(endpoint(baseUrl, '/v1/research/tools'), apiKey);
 }
 
-/** GET /ready — 200 when the model answers, 503 otherwise. */
+/* GET /ready — 200 once the model answers, 503 until then. The body also
+   reports the research MCP, which is worth knowing before starting a run: with
+   research down every verdict comes back `unverifiable`, and the run still
+   costs a minute or two. */
 export async function checkReady({ baseUrl }) {
+  let response;
+  let body = null;
   try {
-    const response = await fetch(endpoint(baseUrl, '/ready'), { method: 'GET' });
-    return { ok: response.ok, status: response.status };
+    response = await fetch(endpoint(baseUrl, '/ready'), { method: 'GET' });
+    body = await response.json().catch(() => null);
   } catch (error) {
     return { ok: false, status: 0, error: String(error?.message || error) };
   }
+
+  const research = body?.research || {};
+  return {
+    ok: response.ok,
+    status: response.status,
+    modelOk: body?.model?.ok ?? null,
+    model: body?.model?.name ?? null,
+    // `configured` false means MCP_API_KEY is unset; `ok` false means it is set
+    // but unreachable. Both degrade rather than fail.
+    researchConfigured: research.configured ?? null,
+    researchOk: research.configured ? (research.ok ?? false) : false,
+    researchTools: research.tools?.length ?? 0,
+    researchError: research.error ?? null,
+  };
 }
 
 /* ---------- request shaping ---------- */
@@ -144,6 +163,15 @@ function describeError(status, payload) {
   }
   if (status === 503) return `Backend not ready (503) — ${textOf(detail) || 'try again shortly'}`;
   if (status === 502) return textOf(detail) || 'model server error (502)';
+  if (status === 500) {
+    /* The backend documents 502 for a failed model call, but only wraps decode
+       errors in LLMError — a transport failure (vLLM down) escapes as a bare
+       500. That is by far the most common 500, so name it. */
+    return (
+      `Backend error 500${detail ? ` — ${textOf(detail)}` : ''}` +
+      ' — often the model server is unreachable; check the backend log'
+    );
+  }
   return `Backend error ${status}${detail ? ` — ${textOf(detail)}` : ''}`;
 }
 

@@ -27,9 +27,13 @@ at your backend and hit **Check claims**, or run the mock:
 node tools/mock-backend.mjs   # serves the documented contract on :8000
 ```
 
-Markers appear as coloured pins on the scrub bar — red = false, amber =
-misleading, blue = needs context. Clicking one pauses the video, jumps to the
+Every claim the backend locates gets a pin on the scrub bar. Problems are tall
+and saturated — red = false, amber = misleading, blue = needs context — while
+checked-and-fine claims are short and dim (green = supported, grey =
+unverifiable, purple = opinion). Clicking one pauses the video, jumps to the
 claim, and opens the verdict with its sources.
+
+Untick **Mark every claim** in the popup to show only problems.
 
 ## API key
 

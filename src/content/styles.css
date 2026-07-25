@@ -11,14 +11,17 @@
 
 /* ---------- markers ---------- */
 
+/* Narrow on purpose. Claims cluster — two 11 s apart on a 19-minute video are
+   ~8px apart on the bar — and a wide hit box would sit on top of its neighbour
+   and swallow its clicks. Roughly the pin plus a pixel each side. */
 .sudosci-marker {
   all: unset;
   box-sizing: border-box;
   position: absolute;
   bottom: 0;
-  width: 16px;
+  width: 8px;
   height: 22px;
-  margin-left: -8px;
+  margin-left: -4px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -33,17 +36,27 @@
   height: 14px;
   border-radius: 2px;
   background: var(--sudosci-color, #ff3b30);
+  /* A hard dark ring, because YouTube's played bar is itself red — without it a
+     red "false" pin disappears into the part of the bar already watched. */
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 0 0 1.5px rgba(0, 0, 0, 0.85),
     0 0 6px color-mix(in srgb, var(--sudosci-color, #ff3b30) 70%, transparent);
   transition: height 90ms ease, width 90ms ease, transform 90ms ease;
   transform-origin: bottom center;
+}
+
+/* Verdicts that are not problems: present and clickable, but visually quieter
+   so red and amber still carry the signal. */
+.sudosci-quiet .sudosci-marker-pin {
+  height: 9px;
+  opacity: 0.65;
 }
 
 .sudosci-marker:hover .sudosci-marker-pin,
 .sudosci-marker:focus-visible .sudosci-marker-pin {
   width: 6px;
   height: 20px;
+  opacity: 1;
 }
 
 .sudosci-marker:focus-visible {
@@ -307,6 +320,22 @@ a.sudosci-citation-title {
 
 a.sudosci-citation-title:hover {
   text-decoration: underline;
+}
+
+.sudosci-citation-bib {
+  margin: 0 0 4px;
+  font-size: 11px;
+  color: rgba(242, 242, 245, 0.45);
+}
+
+.sudosci-doi {
+  color: rgba(242, 242, 245, 0.55);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+.sudosci-doi:hover {
+  color: #7ad3fb;
 }
 
 .sudosci-citation-quote {

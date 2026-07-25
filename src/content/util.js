@@ -7,16 +7,21 @@
 
   /* Mirrors the backend's Verdict enum. `marker: true` are the verdicts worth
      interrupting a viewer for; the rest only appear when the user asks. */
+  /* `rank` breaks ties when two markers land on the same pixel: the more
+     serious verdict paints on top and takes the click, so a false claim is
+     never hidden behind an unverifiable one. */
   const VERDICTS = {
-    false: { label: 'False', color: '#ff3b30', marker: true },
-    misleading: { label: 'Misleading', color: '#ff9f0a', marker: true },
-    needs_context: { label: 'Needs context', color: '#5ac8fa', marker: true },
-    unverifiable: { label: 'Unverifiable', color: '#8e8e93', marker: false },
-    supported: { label: 'Supported', color: '#30d158', marker: false },
-    opinion: { label: 'Opinion', color: '#bf5af2', marker: false },
+    false: { label: 'False', color: '#ff3b30', marker: true, rank: 6 },
+    misleading: { label: 'Misleading', color: '#ff9f0a', marker: true, rank: 5 },
+    needs_context: { label: 'Needs context', color: '#5ac8fa', marker: true, rank: 4 },
+    supported: { label: 'Supported', color: '#30d158', marker: false, rank: 2 },
+    unverifiable: { label: 'Unverifiable', color: '#8e8e93', marker: false, rank: 1 },
+    opinion: { label: 'Opinion', color: '#bf5af2', marker: false, rank: 1 },
   };
 
-  const UNKNOWN_VERDICT = { label: 'Unknown', color: '#8e8e93', marker: false };
+  /* A verdict the backend added and this build does not know about still gets a
+     marker: hiding it would lose the claim silently. */
+  const UNKNOWN_VERDICT = { label: 'Unknown', color: '#8e8e93', marker: true, rank: 3 };
 
   const verdictOf = (verdict) => VERDICTS[verdict] || UNKNOWN_VERDICT;
 
@@ -28,12 +33,16 @@
     context: { label: 'Context', color: '#5ac8fa' },
   };
 
+  /* backend/app/schemas.py SourceTier, in its declared strongest→weakest order. */
   const SOURCE_TIERS = {
     systematic_review: 'Systematic review',
     peer_reviewed: 'Peer reviewed',
     preprint: 'Preprint',
     fact_check: 'Fact check',
     institutional: 'Institutional',
+    // The account's own uploaded documents: provenance known, quality not
+    // assessable, so the backend reports rather than ranks it.
+    private_corpus: 'Private corpus',
     reputable_press: 'Reputable press',
     science_journalism: 'Science journalism',
     other: 'Other',

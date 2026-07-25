@@ -18,14 +18,20 @@ const DEFAULTS = {
   // when they exist). 'asr' forces the auto-generated one.
   transcriptType: '',
 
-  /* Fact-check backend. */
-  factcheckUrl: 'http://localhost:8000',
+  /* Fact-check backend. The deployed instance; it is in host_permissions, so it
+     works without the popup's permission prompt. For a local backend use
+     http://localhost:8080 (see backend/Dockerfile — the API is on 8080, not
+     8000). */
+  factcheckUrl: 'https://fact-checker-hemzcpwb3.brevlab.com',
   factcheckKey: '', // the server's auth gate is a no-op when its API_KEY is unset
   // Off by default: a run is 30–120 s of LLM and search budget, so it is the
   // user's call, not something every video open should trigger.
   autoFactcheck: false,
-  // Markers normally show only the verdicts worth interrupting for.
-  showAllVerdicts: false,
+  /* Mark every claim that has a timestamp, whatever the verdict. Showing only
+     problems means a checked video with nothing wrong looks unchecked, which
+     reads as the extension being broken. Problems are distinguished by colour
+     and weight instead. */
+  showAllVerdicts: true,
 };
 
 const SEEDED_FLAG = 'serpApiKeySeeded';

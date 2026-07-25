@@ -22,10 +22,10 @@ Popup → Fact check:
 
 | Field | Setting key | Default |
 | --- | --- | --- |
-| Backend URL | `factcheckUrl` | `http://localhost:8000` |
+| Backend URL | `factcheckUrl` | `http://localhost:8080` |
 | Backend API key | `factcheckKey` | empty — no `Authorization` header is sent |
 | Check automatically | `autoFactcheck` | **off** |
-| Show supported & unverifiable | `showAllVerdicts` | off |
+| Mark every claim | `showAllVerdicts` | **on** |
 
 Auto-check is off by default deliberately: a run is 30–120 s of model time and up
 to 24 searches, so it is the user's call rather than something every video open
@@ -73,17 +73,66 @@ works identically.
 
 ### Verdict → marker
 
-| Verdict | Colour | Marker by default |
+| Verdict | Colour | Emphasis |
 | --- | --- | --- |
-| `false` | red | yes |
-| `misleading` | amber | yes |
-| `needs_context` | blue | yes |
-| `supported` | green | no |
-| `unverifiable` | grey | no |
-| `opinion` | purple | no |
+| `false` | red | full-height pin |
+| `misleading` | amber | full-height pin |
+| `needs_context` | blue | full-height pin |
+| `supported` | green | short, dimmed |
+| `unverifiable` | grey | short, dimmed |
+| `opinion` | purple | short, dimmed |
+| anything unrecognised | grey | full-height — an added verdict must not vanish |
+
+Every located claim is marked by default. Showing only problems meant a checked
+video with nothing wrong looked identical to one that was never checked, which
+reads as the extension being broken — so the distinction is carried by pin
+height and opacity instead of by presence. `showAllVerdicts: false` restores
+problems-only.
+
+Citation `source_tier` covers all nine values in `schemas.py`, including
+`private_corpus` (the account's own uploads — reported, not ranked highly).
+`venue`, `year`, `doi`, `citation_count` and `peer_reviewed` render as a
+bibliographic line under the source title.
 
 "Show supported & unverifiable" turns the rest on. The palette lives in
 `VERDICTS` in [`util.js`](../src/content/util.js).
+
+## Verified against the real backend
+
+`backend/` was run locally (uvicorn on :8080, model endpoint stubbed, no MCP) and
+driven end to end from the extension. Confirmed live:
+
+- the request passes `FactCheckRequest`'s validator, including
+  `search_metadata` / `search_parameters` / `offline` passthrough
+- `/ready`'s real body (`model.ok`, `model.name`, `research.configured`) parses
+- `start_ms` from `ingest.locate` places a marker; a claim whose quote was not
+  found comes back with `start_ms` **absent** and is bucketed, not dropped
+- real `adjustments` strings render (`"verdict 'supported' had no citation that
+  survived validation; downgraded to 'unverifiable'"`)
+- `research_enabled: false` raises the panel banner
+
+### Two things the port and the docs disagreed on
+
+1. **The API listens on 8080**, not 8000 (`Dockerfile` `EXPOSE 8080`,
+   `docker-compose.yml` `8080:8080`). The default URL was corrected.
+2. **An unreachable model server returns 500, not the documented 502.**
+   `llm.py:151` re-raises transport errors as-is, so `openai.APIConnectionError`
+   never becomes an `LLMError` and `main.py`'s `except LLMError` never fires.
+   The client special-cases 500 with "often the model server is unreachable"
+   until that is wrapped.
+
+### Transcripts are truncated at 24,000 characters
+
+`max_transcript_chars` (backend `config.py`) hard-stops ingestion mid-transcript,
+so a 26-minute video is checked only as far as the cap and the rest is never
+seen. The response says so in `warnings`, and the popup surfaces it. Raising
+`MAX_TRANSCRIPT_CHARS` is the fix; `MAX_CLAIMS=12` still caps how many claims
+come back.
+
+### When the timeline is empty
+
+The popup names the reason rather than leaving it ambiguous: no claim could be
+located (none has `start_ms`), search was unavailable, or nothing was flagged.
 
 ## Errors
 

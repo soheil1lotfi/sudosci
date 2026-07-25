@@ -4,7 +4,7 @@ secrets.local.json
 
 # Backend config. .env.example is the tracked template; real values stay local.
 .env
-.env.*
+.env.*https://fact-checker-hemzcpwb3.brevlab.com
 !.env.example
 
 # OAuth credentials from scripts/mcp_login.py --save. The refresh token grants

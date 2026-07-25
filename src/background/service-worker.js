@@ -472,6 +472,7 @@ async function factcheckForTab(tabId, { force = false, offline = false } = {}) {
   const task = (async () => {
     const settings = await getSettings();
     const startedAt = Date.now();
+    const stopKeepAlive = keepAlive();
     report(tabId, { note: 'Fact-checking — this can take a minute or two…' });
 
     try {
@@ -503,11 +504,22 @@ async function factcheckForTab(tabId, { force = false, offline = false } = {}) {
     } catch (error) {
       report(tabId, { error: String(error?.message || error) });
       throw error;
+    } finally {
+      stopKeepAlive();
     }
   })().finally(() => checking.delete(documentId));
 
   checking.set(documentId, task);
   return task;
+}
+
+/* A fact check is a single blocking request of 30–120 s. MV3 evicts an idle
+   service worker after ~30 s, and a pending fetch is not reliably counted as
+   activity — with the popup closed the worker can be killed mid-request and the
+   result lost with no error. Touching an extension API resets the timer. */
+function keepAlive(intervalMs = 20_000) {
+  const timer = setInterval(() => chrome.runtime.getPlatformInfo().catch(() => {}), intervalMs);
+  return () => clearInterval(timer);
 }
 
 async function factcheckStatus(documentId) {
@@ -518,16 +530,25 @@ async function factcheckStatus(documentId) {
   };
 }
 
+/** Verdicts that get a marker unless the user asks to see everything. */
+const FLAGGED_VERDICTS = new Set(['false', 'misleading', 'needs_context']);
+
 function summariseAnalysis(analysis) {
   const response = analysis.response || {};
   const claims = response.claims || [];
+  const placed = claims.filter((c) => Number.isFinite(c.start_ms));
+
   return {
     documentId: analysis.documentId,
     checkedAt: analysis.checkedAt,
     elapsedMs: analysis.elapsedMs,
     total: claims.length,
     // start_ms is dropped when the quote could not be located in the transcript.
-    placed: claims.filter((c) => Number.isFinite(c.start_ms)).length,
+    placed: placed.length,
+    // How many markers actually get drawn, in each mode — so the popup can say
+    // why the timeline is empty instead of leaving the user guessing.
+    drawableFlagged: placed.filter((c) => FLAGGED_VERDICTS.has(c.verdict)).length,
+    drawableAll: placed.length,
     byVerdict: claims.reduce((acc, c) => {
       acc[c.verdict] = (acc[c.verdict] || 0) + 1;
       return acc;

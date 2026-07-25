@@ -248,8 +248,28 @@ function renderCheck(status) {
     (a.total - a.placed > 0 ? ` (${a.total - a.placed} without a timestamp)` : '') +
     (counts ? ` — ${counts}` : '');
 
-  if (!a.researchEnabled) sayCheck('⚠ Search was unavailable — verdicts are unverified.');
-  else if (a.warnings?.length) sayCheck(a.warnings[0]);
+  /* A run that draws no markers looks like a failure after a minute of waiting,
+     so name the reason. Most specific explanation wins. */
+  const drawn = showAllEl.checked ? a.drawableAll : a.drawableFlagged;
+  const seeTheRest = showAllEl.checked
+    ? ''
+    : ' Tick "Mark every claim" to see them.';
+
+  if (!a.researchEnabled) {
+    // Without research every verdict is `unverifiable`, which is not a marker.
+    sayCheck(`⚠ Search was unavailable, so every verdict is unverifiable.${seeTheRest}`);
+  } else if (a.total === 0) {
+    sayCheck('No checkable claims were found in this transcript.');
+  } else if (drawn === 0 && a.placed === 0) {
+    sayCheck(
+      `No marker: the quote${a.total === 1 ? '' : 's'} could not be located in the ` +
+        'transcript, so there is no timestamp to place.'
+    );
+  } else if (drawn === 0) {
+    sayCheck(`Nothing flagged — no false or misleading claims found.${seeTheRest}`);
+  } else if (a.warnings?.length) {
+    sayCheck(a.warnings.join(' · '));
+  }
 }
 
 async function refreshCheck() {
@@ -302,12 +322,20 @@ async function initFactcheck() {
   pingEl.addEventListener('click', async () => {
     sayCheck('Pinging…');
     const res = await toBackground({ type: 'factcheck:ping' }).catch(() => null);
-    const backend = res?.backend;
-    sayCheck(
-      backend?.ok
-        ? `Backend ready at ${res.url}`
-        : `Backend unreachable (${backend?.error || `HTTP ${backend?.status}`})`
-    );
+    const b = res?.backend;
+
+    if (!b) return sayCheck('Could not reach the extension background');
+    if (!b.ok && !b.status) return sayCheck(`Unreachable — ${b.error}`);
+    if (!b.ok) return sayCheck(`Not ready (HTTP ${b.status}) — model still loading?`);
+
+    // Research down is not an error, but it changes what a run is worth.
+    const research =
+      b.researchConfigured === false
+        ? 'research not configured — every verdict will be unverifiable'
+        : b.researchOk
+          ? `research ok (${b.researchTools} tools)`
+          : `research unreachable — verdicts will be unverifiable${b.researchError ? `: ${b.researchError}` : ''}`;
+    sayCheck(`Ready · ${b.model || 'model'} · ${research}`);
   });
 
   runCheckEl.addEventListener('click', async () => {

@@ -6,6 +6,7 @@
   "permissions": ["storage", "tabCapture", "offscreen", "downloads"],
   "host_permissions": [
     "https://serpapi.com/*",
+    "https://fact-checker-hemzcpwb3.brevlab.com/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
   ],

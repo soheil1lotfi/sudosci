@@ -20,12 +20,24 @@ const server = http.createServer(async (req, res) => {
   };
 
   if (url.pathname === '/health') return send(200, { status: 'ok' });
-  if (url.pathname === '/ready') return send(200, { status: 'ready' });
+  if (url.pathname === '/ready') {
+    // Shape from backend/app/main.py:ready
+    const researchOk = MODE !== 'offline';
+    return send(200, {
+      model: { ok: true, name: 'google/gemma-4-12B-it' },
+      research: researchOk
+        ? { configured: true, ok: true, tools: ['search', 'fetch'] }
+        : { configured: false },
+      status: 'ready',
+    });
+  }
 
   const auth = req.headers.authorization || '';
   if (KEY && auth !== `Bearer ${KEY}`) return send(401, { detail: 'invalid token' });
 
-  if (url.pathname === '/v1/research/tools') return send(200, { tool: 'mock-search' });
+  if (url.pathname === '/v1/research/tools') {
+    return send(200, { tools: [{ name: 'search', mcp_tool: 'web_search', description: 'mock' }] });
+  }
 
   if (url.pathname === '/v1/factcheck' && req.method === 'POST') {
     let raw = '';
@@ -56,7 +68,9 @@ const server = http.createServer(async (req, res) => {
         citations: offline ? [] : [
           { source_id: 's1', url: 'https://example.org/prl-2002', title: 'Language Trees and Zipping (Phys. Rev. Lett.)',
             quoted_span: 'we obtain a language tree consistent with linguistic classification',
-            stance: 'supports', source_tier: 'peer_reviewed', quote_exact: true },
+            stance: 'supports', source_tier: 'peer_reviewed', quote_exact: true,
+            venue: 'Physical Review Letters', year: '2002', doi: '10.1103/PhysRevLett.88.048702',
+            citation_count: 1204, peer_reviewed: true },
           { source_id: 's2', url: 'https://example.org/review', title: 'Compression-based similarity: a review',
             quoted_span: 'subsequent work replicated the clustering result',
             stance: 'partial', source_tier: 'science_journalism', quote_exact: false },
@@ -93,7 +107,9 @@ const server = http.createServer(async (req, res) => {
         citations: [
           { source_id: 's4', url: 'https://example.org/distill', title: 'Distilling the Knowledge in a Neural Network',
             quoted_span: 'the distilled model need not be smaller', stance: 'context',
-            source_tier: 'preprint', quote_exact: true },
+            source_tier: 'preprint', quote_exact: true, year: '2015', peer_reviewed: false },
+          { source_id: 's5', title: 'Internal notes on distillation', quoted_span: 'teacher and student may share a size',
+            stance: 'context', source_tier: 'private_corpus', quote_exact: true },
         ],
         searches_used: 1,
         adjustments: [],
@@ -122,7 +138,11 @@ const server = http.createServer(async (req, res) => {
       duration_ms: DELAY,
       model: 'mock-model-1',
       research_enabled: !offline,
-      warnings: offline ? ['MCP unconfigured: all claims returned unverifiable'] : [],
+      warnings: [
+        ...(offline ? ['offline mode: no sources were retrieved, so no claim can be confirmed and all verdicts are unverifiable'] : []),
+        ...(cues.reduce((n, c) => n + (c.snippet || '').length, 0) > 24000
+          ? ['transcript was truncated; only the opening portion was checked'] : []),
+      ],
     }));
   }
 

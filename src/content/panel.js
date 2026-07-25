@@ -175,6 +175,9 @@
       item.appendChild(paragraph(label, 'sudosci-citation-title'));
     }
 
+    const bibliography = renderBibliography(citation);
+    if (bibliography) item.appendChild(bibliography);
+
     if (citation.quoted_span) {
       const span = el('p', 'sudosci-citation-quote');
       span.textContent = `“${citation.quoted_span}”`;
@@ -182,6 +185,40 @@
     }
 
     return item;
+  }
+
+  /* Scholarly detail the backend attaches so the evidence can be judged without
+     opening the link. All of it is optional and absent when unknown. */
+  function renderBibliography(citation) {
+    const line = el('p', 'sudosci-citation-bib');
+    const parts = [];
+
+    if (citation.venue) parts.push(citation.venue);
+    if (citation.year) parts.push(String(citation.year));
+    if (citation.peer_reviewed === true) parts.push('peer-reviewed');
+    if (Number.isFinite(citation.citation_count)) {
+      parts.push(`${citation.citation_count.toLocaleString()} citations`);
+    }
+
+    for (const [i, part] of parts.entries()) {
+      const span = el('span');
+      span.textContent = i === 0 ? part : ` · ${part}`;
+      line.appendChild(span);
+    }
+
+    if (citation.doi) {
+      const prefix = el('span');
+      prefix.textContent = parts.length ? ' · ' : '';
+      const doi = el('a', 'sudosci-doi', {
+        href: `https://doi.org/${citation.doi}`,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      });
+      doi.textContent = `doi:${citation.doi}`;
+      line.append(prefix, doi);
+    }
+
+    return line.childNodes.length ? line : null;
   }
 
   /* The backend's channel for "this is weaker than it looks" — worth showing,
