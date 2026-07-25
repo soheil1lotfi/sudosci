@@ -1,0 +1,5 @@
+# Local API keys — seeded into chrome.storage on first run, never committed.
+secrets.local.json
+
+.DS_Store
+node_modules/

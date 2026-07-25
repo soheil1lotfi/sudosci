@@ -1,0 +1,198 @@
+/* All rules are prefixed and reset aggressively — they live inside YouTube,
+   which has a very opinionated stylesheet of its own. */
+
+.sudosci-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 45;
+}
+
+/* ---------- markers ---------- */
+
+.sudosci-marker {
+  all: unset;
+  box-sizing: border-box;
+  position: absolute;
+  bottom: 0;
+  width: 16px;
+  height: 22px;
+  margin-left: -8px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.sudosci-marker-pin {
+  display: block;
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--sudosci-color, #ff3b30);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 0 6px color-mix(in srgb, var(--sudosci-color, #ff3b30) 70%, transparent);
+  transition: height 90ms ease, width 90ms ease, transform 90ms ease;
+  transform-origin: bottom center;
+}
+
+.sudosci-marker:hover .sudosci-marker-pin,
+.sudosci-marker:focus-visible .sudosci-marker-pin {
+  width: 6px;
+  height: 20px;
+}
+
+.sudosci-marker:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+/* ---------- tooltip ---------- */
+
+.sudosci-tooltip {
+  position: absolute;
+  bottom: 26px;
+  transform: translateX(-50%);
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(16, 16, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  color: #f2f2f5;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.sudosci-tooltip.sudosci-visible {
+  display: flex;
+}
+
+.sudosci-tooltip-head {
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sudosci-tooltip-body {
+  color: rgba(242, 242, 245, 0.82);
+}
+
+/* ---------- panel ---------- */
+
+.sudosci-panel-host {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 2147483000;
+  display: none;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.sudosci-panel-host.sudosci-open {
+  display: block;
+}
+
+.sudosci-panel {
+  box-sizing: border-box;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  border-radius: 14px;
+  background: rgba(20, 20, 23, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  color: #f2f2f5;
+  overflow: hidden;
+  animation: sudosci-rise 140ms ease-out;
+}
+
+@keyframes sudosci-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sudosci-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.sudosci-panel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.sudosci-panel-titles {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sudosci-panel-severity {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.sudosci-panel-time {
+  font-size: 12px;
+  color: rgba(242, 242, 245, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.sudosci-panel-close {
+  all: unset;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  color: rgba(242, 242, 245, 0.6);
+}
+
+.sudosci-panel-close:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+
+.sudosci-panel-body {
+  min-height: 180px;
+  padding: 14px;
+  display: flex;
+}
+
+.sudosci-panel-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  color: rgba(242, 242, 245, 0.4);
+  font-size: 13px;
+  text-align: center;
+  padding: 16px;
+}

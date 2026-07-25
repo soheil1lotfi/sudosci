@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SudoSci</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="head">
+      <span class="logo">SudoSci</span>
+      <span class="status" id="status">Checking…</span>
+    </header>
+
+    <section class="rows">
+      <label class="row">
+        <span class="row-label">Show markers</span>
+        <input type="checkbox" id="enabled" />
+      </label>
+      <label class="row">
+        <span class="row-label">Pause on marker click</span>
+        <input type="checkbox" id="pauseOnClick" />
+      </label>
+      <label class="row">
+        <span class="row-label">Jump to claim on click</span>
+        <input type="checkbox" id="seekOnClick" />
+      </label>
+    </section>
+
+    <section class="capture">
+      <div class="capture-head">
+        <span class="section-title">Transcription</span>
+        <span class="pill" id="captureState">idle</span>
+      </div>
+      <div class="capture-source" id="captureSource">—</div>
+      <div class="capture-stats" id="captureStats">Nothing transcribed yet</div>
+      <div class="capture-actions">
+        <button id="fetchTranscript" type="button" class="primary">Get transcript</button>
+        <button id="exportJson" type="button">Export JSON</button>
+      </div>
+      <button id="captureToggle" type="button" class="link">
+        No captions? Capture audio instead
+      </button>
+
+      <label class="row compact">
+        <span class="row-label">Auto-fetch on video open</span>
+        <input type="checkbox" id="autoTranscribe" />
+      </label>
+
+      <div class="key-row">
+        <input type="password" id="apiKey" placeholder="SerpApi key" autocomplete="off" />
+        <button id="saveKey" type="button">Save</button>
+      </div>
+
+      <p class="hint" id="captureHint"></p>
+    </section>
+
+    <section class="legend">
+      <div class="legend-title">Marker legend</div>
+      <div class="legend-item"><i style="background:#ff3b30"></i>False claim</div>
+      <div class="legend-item"><i style="background:#ff9f0a"></i>Misleading</div>
+      <div class="legend-item"><i style="background:#5ac8fa"></i>Unverified</div>
+    </section>
+
+    <footer class="foot">
+      <span id="detail">—</span>
+      <button id="refresh" type="button">Rescan</button>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

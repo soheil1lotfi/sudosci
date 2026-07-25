@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "SudoSci — Claim Markers",
+  "version": "0.1.0",
+  "description": "Marks scientific claims on the YouTube timeline. Click a marker to pause and inspect the claim.",
+  "permissions": ["storage", "tabCapture", "offscreen", "downloads"],
+  "host_permissions": ["https://serpapi.com/*"],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "SudoSci",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+      "js": [
+        "src/content/util.js",
+        "src/content/claims.js",
+        "src/content/adapters/youtube.js",
+        "src/content/panel.js",
+        "src/content/timeline.js",
+        "src/content/index.js",
+        "src/content/clock.js"
+      ],
+      "css": ["src/content/styles.css"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
