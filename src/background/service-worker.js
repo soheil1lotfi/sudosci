@@ -266,11 +266,13 @@ async function fetchTranscriptFor(media, { force = false, tabId = null } = {}) {
 
   const task = (async () => {
     const settings = await getSettings();
-    const { segments, chapters, availableLanguages, languageCode } = await fetchTranscript({
+    const result = await fetchTranscript({
       videoId: media.mediaId,
       apiKey: settings.serpApiKey,
       languageCode: settings.transcriptLanguage,
+      type: settings.transcriptType || undefined,
     });
+    const { segments, chapters, languageCode } = result;
 
     const doc = createDocument({
       media,
@@ -285,12 +287,23 @@ async function fetchTranscriptFor(media, { force = false, tabId = null } = {}) {
 
     doc.media.language = languageCode;
     doc.media.chapters = chapters;
-    doc.capture.availableLanguages = availableLanguages;
+    doc.capture.availableTranscripts = result.availableTranscripts;
+    doc.capture.availableLanguages = result.availableLanguages;
+    doc.capture.transcriptType = result.transcriptType;
+    doc.capture.searchId = result.searchId; // traceable in the SerpApi dashboard
+    doc.capture.requestedLanguage = settings.transcriptLanguage || null;
     doc.capture.completedAt = new Date().toISOString();
+    doc.capture.endsEstimated = result.endsEstimated;
     doc.chunks = chunkSegments(segments, {
       chunkSeconds: CONFIG.chunkSeconds,
       model: SERPAPI_MODEL,
     });
+
+    // Never store an empty document: it would cache as "done" and quietly stand
+    // in for a transcript that was never captured.
+    if (!doc.chunks.length) {
+      throw new Error('Transcript produced no chunks — nothing stored');
+    }
     doc.capture.coverage = doc.chunks.reduce(
       (coverage, chunk) => addCoverage(coverage, chunk.start, chunk.end),
       []

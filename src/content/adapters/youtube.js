@@ -33,6 +33,14 @@
       );
     },
 
+    /** Ads play through the same <video>, so its duration is the ad's. */
+    isAdShowing() {
+      return !!(
+        document.querySelector('#movie_player')?.classList.contains('ad-showing') ||
+        document.querySelector('.ytp-ad-player-overlay, .ytp-ad-player-overlay-layout')
+      );
+    },
+
     getMedia() {
       const video = this.getVideo();
       if (!video) return null;
@@ -46,7 +54,14 @@
           : null) ||
         location.pathname;
 
-      return { platform: 'youtube', mediaId, duration, currentTime: video.currentTime };
+      return {
+        platform: 'youtube',
+        mediaId,
+        duration,
+        currentTime: video.currentTime,
+        isAd: this.isAdShowing(),
+        ready: video.readyState >= 1, // HAVE_METADATA
+      };
     },
 
     /** Playhead sample used to align captured audio to the media timeline. */
@@ -61,11 +76,13 @@
     },
 
     getMetadata() {
+      // document.title is the bare "YouTube" placeholder until the SPA fills it
+      // in, so treat that as "not known yet" rather than as a title.
+      const fromDocument = document.title.replace(/\s*-\s*YouTube$/, '').trim();
       const title =
         document.querySelector('h1.ytd-watch-metadata, h1.title yt-formatted-string')
           ?.textContent?.trim() ||
-        document.title.replace(/\s*-\s*YouTube$/, '').trim() ||
-        null;
+        (fromDocument && fromDocument !== 'YouTube' ? fromDocument : null);
       const author =
         document.querySelector('#owner #channel-name a, ytd-channel-name a')
           ?.textContent?.trim() || null;

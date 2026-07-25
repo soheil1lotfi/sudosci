@@ -101,6 +101,20 @@ interface:
 Another platform would be a second file implementing the same methods, plus an
 entry in `content_scripts` and `matches`. Nothing outside the adapter would change.
 
+## Seeing the transcript
+
+Open a video with DevTools on the page (F12 → Console). When the fetch lands you get:
+
+```
+[SudoSci] transcript fetched — 37 chunks, 500 segments
+  ▸ document: {schemaVersion: 1, documentId: "youtube:aircAruvnKk", …}
+  ▸ JSON: "{ …pretty-printed… }"
+```
+
+Expand `document` to browse it, or copy the `JSON` string. Failures print there too
+(bad key, no captions in the requested language). The same lines appear in the
+service worker console (`chrome://extensions` → SudoSci → *service worker*).
+
 ## Exporting a transcript
 
 Popup → **Export JSON** writes `Downloads/sudosci/youtube_<id>.json`. That file is

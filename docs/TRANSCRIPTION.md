@@ -39,7 +39,14 @@ apart from `capture.source`.
     "startedAt": "2026-07-25T13:54:33.357Z",
     "completedAt": "2026-07-25T13:54:35.061Z",
     "coverage": [[0, 1119]],       // media-time spans actually transcribed
-    "availableLanguages": ["ar", "de", "en", "..."]
+    "requestedLanguage": "en",     // what was asked for…
+    "transcriptType": null,        // 'asr' when the auto-generated track was used
+    "searchId": "68852264fc8a…",   // traceable in the SerpApi dashboard
+    "availableLanguages": ["ar", "de", "en", "..."],
+    "availableTranscripts": [
+      { "languageName": "English", "languageCode": "en", "type": "asr",
+        "title": null, "selected": true }
+    ]
   },
   "chunks": [
     {
@@ -149,14 +156,28 @@ knows, so the lookup is direct.
 
 ## Costs and limits
 
-- **Each SerpApi fetch is a paid search.** Documents are cached by video id and
-  never re-fetched (`force: true` overrides). Auto-fetch can be turned off in the
-  popup.
+- **Each SerpApi fetch is a paid search**, except that an identical query inside
+  an hour is served from SerpApi's own cache for free. Documents are also cached
+  locally by video id and never re-fetched (`force: true` overrides); auto-fetch
+  can be turned off in the popup.
 - The API key lives in `chrome.storage.local`, seeded once from a gitignored
   `secrets.local.json`. It is still readable by anyone who installs the
   extension — a key in a client is a public key. Move it behind the backend
   before this ships to anyone else.
-- `language_code` defaults to `en` (`CONFIG`/settings). If a video has no
-  transcript in that language the error lists what is available; there is no
-  automatic retry, because a retry is another paid search.
+- `language_code` defaults to `en`. If the video has no track in that language,
+  the engine falls back to the first language it does have — so a non-English
+  video still transcribes, and `media.language` records what came back rather
+  than what was asked for (`capture.requestedLanguage` keeps the ask). A language
+  code that is not supported at all is a hard error instead.
+- `type` is left unset so the engine returns the track YouTube marks as selected
+  — human captions when they exist, ASR otherwise. Setting `transcriptType: 'asr'`
+  forces the auto-generated track, which is usually worse.
+- A failed fetch can arrive as `search_metadata.status: "Success"` with an `error`
+  field set and no transcript (confirmed live). Check `error`, not just `status`.
+- **Not every caption track has `end_ms`** — some return `start_ms` only. A cue
+  then runs until the next one starts, and the last is estimated from its word
+  count; `capture.endsEstimated` records that this happened, so the backend can
+  treat those spans as approximate. Segment *starts* are always exact.
+- A fetch that normalises to zero cues throws rather than storing an empty
+  document, which would otherwise cache as a completed transcript.
 - Tab capture holds one tab at a time and stops when the tab navigates or closes.

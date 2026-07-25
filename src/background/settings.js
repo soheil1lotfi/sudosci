@@ -11,7 +11,12 @@
 const DEFAULTS = {
   serpApiKey: '',
   autoTranscribe: true, // fetch the transcript as soon as a video is opened
+  // Requested language. If the video has no track in it, SerpApi falls back to
+  // the first one it does have — the result records which was actually used.
   transcriptLanguage: 'en',
+  // '' lets SerpApi pick the track YouTube marks as selected (human captions
+  // when they exist). 'asr' forces the auto-generated one.
+  transcriptType: '',
 };
 
 const SEEDED_FLAG = 'serpApiKeySeeded';

@@ -25,6 +25,8 @@
       title: meta.title ?? null,
       author: meta.author ?? null,
       url: meta.url ?? location.href,
+      isAd: !!media.isAd,
+      ready: !!media.ready,
     };
   }
 
