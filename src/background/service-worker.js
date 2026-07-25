@@ -276,6 +276,8 @@ async function fetchTranscriptFor(media, { force = false, tabId = null } = {}) {
   if (!force && existing?.capture?.source === SERPAPI_SOURCE && existing.chunks?.length) {
     const doc = await refreshMetadata(existing, media);
     report(tabId, { documentId, cached: true, document: doc });
+    // A cached transcript still needs checking if it was never checked.
+    void maybeAutoCheck(tabId, documentId);
     return { documentId, cached: true, chunks: doc.chunks.length };
   }
 
@@ -328,11 +330,7 @@ async function fetchTranscriptFor(media, { force = false, tabId = null } = {}) {
 
     await putDocument(doc);
     report(tabId, { documentId, cached: false, document: doc });
-
-    // Opt-in: a run costs real time and search budget.
-    if (settings.autoFactcheck && tabId) {
-      factcheckForTab(tabId).catch(() => {}); // errors already surface via report()
-    }
+    void maybeAutoCheck(tabId, documentId);
 
     return {
       documentId,
@@ -450,6 +448,51 @@ function redact(settings) {
 
 /** Runs keyed by documentId — the request is long, so never start two. */
 const checking = new Map();
+/** When each in-flight run began, so a popup opened mid-run shows real elapsed. */
+const checkStartedAt = new Map();
+
+/* Auto-checks run one at a time. Browsing through several videos would
+   otherwise start a 30–120 s model run for each in parallel and burn the
+   request's search budget many times over; queueing keeps that to one at a
+   time without silently dropping the later videos. */
+const autoQueue = [];
+let autoDraining = false;
+
+async function maybeAutoCheck(tabId, documentId) {
+  if (!tabId) return;
+  const { autoFactcheck } = await getSettings();
+  if (!autoFactcheck) return;
+  if (await getAnalysis(documentId)) return; // already checked, results are cached
+  if (checking.has(documentId)) return;
+  if (autoQueue.some((job) => job.documentId === documentId)) return;
+
+  autoQueue.push({ tabId, documentId });
+  void drainAutoQueue();
+}
+
+async function drainAutoQueue() {
+  if (autoDraining) return;
+  autoDraining = true;
+  try {
+    while (autoQueue.length) {
+      const job = autoQueue.shift();
+      if (await getAnalysis(job.documentId)) continue; // checked while queued
+
+      // The tab may have closed or moved on while this waited its turn; there
+      // is no point spending a run on a video nobody is watching any more.
+      const media = await askTab(job.tabId, { type: 'sudosci:media' });
+      if (!media || `${media.platform}:${media.mediaId}` !== job.documentId) continue;
+
+      try {
+        await factcheckForTab(job.tabId);
+      } catch {
+        // Already surfaced to the page console by factcheckForTab.
+      }
+    }
+  } finally {
+    autoDraining = false;
+  }
+}
 
 async function factcheckForTab(tabId, { force = false, offline = false } = {}) {
   const media = await askTab(tabId, { type: 'sudosci:media' });
@@ -472,6 +515,7 @@ async function factcheckForTab(tabId, { force = false, offline = false } = {}) {
   const task = (async () => {
     const settings = await getSettings();
     const startedAt = Date.now();
+    checkStartedAt.set(documentId, startedAt);
     const stopKeepAlive = keepAlive();
     report(tabId, { note: 'Fact-checking — this can take a minute or two…' });
 
@@ -507,7 +551,10 @@ async function factcheckForTab(tabId, { force = false, offline = false } = {}) {
     } finally {
       stopKeepAlive();
     }
-  })().finally(() => checking.delete(documentId));
+  })().finally(() => {
+    checking.delete(documentId);
+    checkStartedAt.delete(documentId);
+  });
 
   checking.set(documentId, task);
   return task;
@@ -524,8 +571,12 @@ function keepAlive(intervalMs = 20_000) {
 
 async function factcheckStatus(documentId) {
   const analysis = documentId ? await getAnalysis(documentId) : null;
+  const running = documentId ? checking.has(documentId) : checking.size > 0;
   return {
-    running: documentId ? checking.has(documentId) : checking.size > 0,
+    running,
+    // Auto-checks start without the popup, so elapsed time has to come from here.
+    startedAt: (documentId ? checkStartedAt.get(documentId) : null) ?? null,
+    queued: autoQueue.length,
     analysis: analysis ? summariseAnalysis(analysis) : null,
   };
 }

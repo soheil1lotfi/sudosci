@@ -24,12 +24,21 @@ Popup → Fact check:
 | --- | --- | --- |
 | Backend URL | `factcheckUrl` | `http://localhost:8080` |
 | Backend API key | `factcheckKey` | empty — no `Authorization` header is sent |
-| Check automatically | `autoFactcheck` | **off** |
+| Check automatically | `autoFactcheck` | **on** |
 | Mark every claim | `showAllVerdicts` | **on** |
 
-Auto-check is off by default deliberately: a run is 30–120 s of model time and up
-to 24 searches, so it is the user's call rather than something every video open
-triggers. Turn it on and a transcript fetch chains straight into a check.
+Opening a video fetches the transcript and then checks it, with no interaction.
+A run is 30–120 s of model time and up to 24 searches, but it happens once per
+video: the result is cached and only recomputed on an explicit **Re-check**.
+
+Auto-checks are **queued, one at a time**. Browsing through several videos would
+otherwise start a full run for each in parallel and multiply the search spend; a
+queued video whose tab has moved on is dropped rather than checked. Manual
+**Check claims** is never queued.
+
+A run outlives the popup, so the service worker holds itself alive while a
+request is in flight (MV3 evicts an idle worker after ~30 s and a pending fetch
+does not reliably count as activity).
 
 The key is only sent when non-empty, matching the server's gate being a no-op
 when `API_KEY` is unset.

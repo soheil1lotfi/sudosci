@@ -20,8 +20,13 @@ implements the contract ships in [tools/](tools/) so the frontend runs without i
 3. **Load unpacked** → select this folder
 4. Open a YouTube video and press play
 
-Opening a video fetches its transcript automatically. Then either point the popup
-at your backend and hit **Check claims**, or run the mock:
+Opening a video does the rest by itself: the transcript is fetched, sent to the
+fact-check backend, and the verdicts land on the scrub bar — roughly 45 s end to
+end, no clicks. Results are cached per video, so reopening one is instant and
+costs nothing.
+
+The deployed backend is the default. To work against a local one, put its URL in
+the popup, or run the stand-in:
 
 ```bash
 node tools/mock-backend.mjs   # serves the documented contract on :8000

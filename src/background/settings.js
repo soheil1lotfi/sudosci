@@ -24,9 +24,10 @@ const DEFAULTS = {
      8000). */
   factcheckUrl: 'https://fact-checker-hemzcpwb3.brevlab.com',
   factcheckKey: '', // the server's auth gate is a no-op when its API_KEY is unset
-  // Off by default: a run is 30–120 s of LLM and search budget, so it is the
-  // user's call, not something every video open should trigger.
-  autoFactcheck: false,
+  /* Check every video as it opens. A run is 30–120 s of model time and up to
+     24 searches, but it only happens once per video — the result is cached and
+     never recomputed unless forced. */
+  autoFactcheck: true,
   /* Mark every claim that has a timestamp, whatever the verdict. Showing only
      problems means a checked video with nothing wrong looks unchecked, which
      reads as the extension being broken. Problems are distinguished by colour

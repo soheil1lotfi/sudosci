@@ -228,8 +228,11 @@ function renderCheck(status) {
   runCheckEl.disabled = checking || !documentId;
 
   if (checking) {
-    // No streaming from the backend, so the only honest progress is elapsed time.
-    const secs = Math.round((Date.now() - checkStartedAt) / 1000);
+    // No streaming from the backend, so the only honest progress is elapsed
+    // time. The run may have been started automatically before the popup was
+    // opened, so prefer the background's start time over ours.
+    const since = status?.startedAt || checkStartedAt || Date.now();
+    const secs = Math.max(0, Math.round((Date.now() - since) / 1000));
     checkStatsEl.textContent = `Working… ${secs}s (can take 30–120s)`;
     return;
   }
@@ -280,7 +283,13 @@ async function refreshCheck() {
   renderCheck(status);
 
   clearTimeout(refreshCheck.timer);
-  if (checking) refreshCheck.timer = setTimeout(refreshCheck, 1000);
+  if (checking) {
+    refreshCheck.timer = setTimeout(refreshCheck, 1000);
+  } else if (documentId && !status?.analysis) {
+    // An automatic check may be about to start, or be queued behind another
+    // video; keep looking so the popup does not sit on a stale "idle".
+    refreshCheck.timer = setTimeout(refreshCheck, 2500);
+  }
 }
 
 async function initFactcheck() {
