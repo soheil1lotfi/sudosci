@@ -112,16 +112,18 @@ system prompt.
 
 ## Deploy to Brev
 
-1. **Get credentials.** An alien.club API key (`oat_...`) and a Hugging Face
-   token that has accepted the Gemma licence.
+1. **Get credentials.** Just an alien.club API key (`oat_...`). No Hugging Face
+   token is needed: Gemma 4 is Apache-2.0 and **not gated**, so there is no
+   licence to accept and the weights download anonymously. (Gemma 2 and 3 *were*
+   gated — if you remember clicking through terms, that was them.)
 2. **Create a Launchable** — Docker Compose mode, pointed at this repo's
    `backend/docker-compose.yml` Git URL. Pick an **L40S 44 GB** or larger. Set
    **JupyterLab = No**: the API serves its own port.
 3. **Set launch environment variables:**
    ```
-   HF_TOKEN=hf_...
    MCP_API_KEY=oat_...
    API_KEY=<a bearer token you invent, to protect the endpoint>
+   HF_TOKEN=hf_...   # optional: only for higher rate limits or a private model
    ```
 4. **Reach the API.** `brev port-forward <instance> --port 8080:8080`. Use this
    rather than the console Tunnel for programmatic access — tunnel URLs sit

@@ -17,18 +17,20 @@ services:
     ipc: host
     restart: unless-stopped
     environment:
-      # Gemma is a gated repo: accept the licence on Hugging Face, then pass a
-      # token with access. Without it the download fails with a 401.
-      HF_TOKEN: ${HF_TOKEN:?set HF_TOKEN to a Hugging Face token with Gemma access}
+      # Optional. Gemma 4 is Apache-2.0 and NOT gated (verified against the HF
+      # API: `gated: false`), so the weights download anonymously and no licence
+      # needs accepting. Set a token only if you want higher rate limits or are
+      # pointing LLM_MODEL at a private/gated repo of your own.
+      HF_TOKEN: ${HF_TOKEN:-}
       HF_HOME: /root/.cache/huggingface
       VLLM_API_KEY: ${LLM_API_KEY:-local-dev-key}
       MODEL: ${LLM_MODEL:-google/gemma-4-12B-it}
       # Gemma 4's heterogeneous attention heads push vLLM onto Triton kernels
       # rather than FlashAttention, which leaves TTFT good but end-to-end latency
       # poor. Multi-Token Prediction recovers 1.5-3x of that, so this earns its
-      # place. It needs the matching MTP draft checkpoint to exist for your model
-      # though - if vLLM fails at startup complaining it cannot fetch the
-      # speculative model, set SPECULATIVE_ARGS="" and you lose only the speedup.
+      # place. The draft checkpoint google/gemma-4-12B-it-assistant exists, but
+      # if you change LLM_MODEL the matching `-assistant` repo may not - set
+      # SPECULATIVE_ARGS="" in that case and you lose only the speedup.
       SPECULATIVE_ARGS: >-
         ${SPECULATIVE_ARGS---speculative-config={"model":"${LLM_MODEL:-google/gemma-4-12B-it}-assistant","num_speculative_tokens":4}}
     volumes:
@@ -55,7 +57,15 @@ services:
     # the verification loop; prefix caching pays off because every claim shares a
     # long system prompt.
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/health')"]
+      # python3, not python: the vLLM image invokes `python3` for its own
+      # entrypoint and does not guarantee a `python` symlink. Getting this wrong
+      # is silent and total - vLLM serves fine, the check never passes, and the
+      # api container waits on it forever.
+      test:
+        - CMD
+        - python3
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://localhost:8000/health")
       interval: 20s
       timeout: 5s
       # Cold start pulls and loads ~23GB, so allow a generous window before the
